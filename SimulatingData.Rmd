@@ -1,0 +1,21 @@
+---
+title: "Simulating Data"
+author: "Kristian Severin"
+date: "2023-05-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# loading packages
+pacman::p_load(  
+  tidyverse,
+  brms,
+  cmdstanr,
+  patchwork
+  )
+```
+
