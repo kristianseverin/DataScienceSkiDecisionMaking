@@ -17,5 +17,97 @@ pacman::p_load(
   cmdstanr,
   patchwork
   )
+
+source("SimpleBayes_f.R")  # get self-written simplebayes function from source
 ```
+
+Simulating data
+
+```{r}
+# set up experimental conditions
+ntrials <- 100
+bias <- 0.5
+accumulatedAviCond <- c(0,1,2,3,4,5,6)
+accumulatedTerrainCond <- c(0,1,2,3,4)
+
+# saving information
+Source1 <- array(NA, ntrials)
+Source2 <- array(NA, ntrials)
+decision <- array(NA, ntrials)
+assessmentAvi <- array(NA, ntrials)
+assessmentTerrain <- array(NA, ntrials)
+temp_a <- array(NA, ntrials)  # temporary overall assessment
+a <- array(NA, ntrials) # overall assessment
+outcome <- array(NA, ntrials) # did they ski
+
+for (i in 1:ntrials){
+  # create random assessment for avi conditions
+  assessmentAvi[i] <- sample(accumulatedAviCond, 1, replace = TRUE)
+  # make assessment for avi cond on 0-1 space (divide with n+1)
+  Source1[i] <- assessmentAvi[i] / 8
+  # create random assessment for terrain conditions
+  assessmentTerrain[i] <- sample(accumulatedTerrainCond, 1, replace = TRUE)
+  # make assessment for terrain cond on 0-1 space (divide with n+1)
+  Source2[i] <- assessmentTerrain[i] / 6
+  # get temporay overall assessment
+  temp_a[i] <- SimpleBayes_f(bias, Source1[i], Source2[i])
+  
+  
+  # this nested ifelse gets an overall assessment on a normal scale
+  a[i] <- ifelse(round(temp_a[i]*11,0) < 0, 0,  # a can be an integer from 0-10 
+                     ifelse(round(temp_a[i]*11,0) > 10, 10, 
+                            round(temp_a[i]*11,0)))
+  # this nested ifelse gets the outcome. Did the person ski or not
+  outcome[i] <- ifelse(a[i] >= 8, 0, 
+                ifelse(a[i] <= 4, 1, rbinom(1, 1, .5))). # all integers between 4 and 8 are computed as 50/50 
+
+}
+
+# get everything in a tibble 
+sim_df <- tibble(trial = seq(ntrials), bias, assessmentAvi, assessmentTerrain, Source1, Source2,temp_a, a, outcome)
+
+```
+
+```{r}
+# get sources within scope
+sim_df$Source1 <- ifelse(sim_df$Source1 == 0, 0.01, 
+                  ifelse(sim_df$Source1 == 1, 0.99, sim_df$Source1))  # i.e., hardcode 0 to be 0.01 and 1 to be 0.99
+
+sim_df$Source2 <- ifelse(sim_df$Source2 == 0, 0.01, 
+                  ifelse(sim_df$Source2 == 1, 0.99, sim_df$Source2))  # i.e., hardcode 0 to be 0.01 and 1 to be 0.99
+```
+
+
+```{r}
+# prepare data for stan - simple bayes
+data_simpleBayes <- list(
+  N = nrow(sim_df),
+  outcome = sim_df$outcome, # the outcome (did they ski or not)
+  Source1 = sim_df$Source1, # own rating on 0-1 space
+  Source2 = sim_df$Source2 # group raing on 0-1 space
+)
+# feed R the stan model
+file <- file.path("simplebayes.stan")
+mod_simpleBayes <- cmdstan_model(file, cpp_options = list(stan_threads = TRUE),
+                     stanc_options = list("O1"))
+samples_simple <- mod_simpleBayes$sample(
+  data = data_simpleBayes,
+  #fixed_param = TRUE,
+  seed = 123,
+  chains = 2,
+  parallel_chains = 2,
+  threads_per_chain = 2,
+  iter_warmup = 1500,
+  iter_sampling = 3000,
+  refresh = 500
+)
+# basic evaluation
+samples_simple$cmdstan_diagnose()
+```
+
+```{r}
+
+```
+
+
 
