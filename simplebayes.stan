@@ -24,7 +24,7 @@ parameters {
 }
 
 model {
- target += normal_lpdf(bias | 0, .15);
+ target += normal_lpdf(bias | 0, 1);
  target += bernoulli_logit_lpmf(outcome | bias + 0.5*to_vector(l_Source1) + 0.5*to_vector(l_Source2));
 }
 

@@ -47,13 +47,10 @@ sim_df$Source2 <- ifelse(sim_df$Source2 == 0, 0.01,
 
 ```{r}
 # trying to add different priors to bias
-prior_mean <- seq(0, 1, 0.1)
-prior_sd <- seq(0.1, 1, 0.01)
+prior_mean <- seq(0.1, , 0.1)  # sequence of 0.1-1 by 1
+prior_sd <- seq(0.1, 1, 0.1)
 priors <-  expand.grid(prior_mean, prior_sd)
 priors <- tibble(prior_mean = priors$Var1, prior_sd = priors$Var2)
-
-priors <- priors[-1001,]
-
 
 sim_df <- cbind(sim_df, priors)
 ```
@@ -70,12 +67,12 @@ data_simpleBayes <- list(
   skiers = sim_df$skier,
   outcome = sim_df$outcome, # the outcome (did they ski or not)
   Source1 = sim_df$Source1, # own rating on 0-1 space
-  Source2 = sim_df$Source2 # group rating on 0-1 space
-#  prior_mean = priors$prior_mean,
-#  prior_sd = priors$prior_sd
+  Source2 = sim_df$Source2, # group rating on 0-1 space
+  prior_mean = priors$prior_mean,
+  prior_sd = priors$prior_sd
 )
 # feed R the stan model
-file <- file.path("simplebayes.stan")
+file <- file.path("hej.stan")
 mod_simpleBayes <- cmdstan_model(file, cpp_options = list(stan_threads = TRUE),
                      stanc_options = list("O1"))
 samples_simple <- mod_simpleBayes$sample(
@@ -126,7 +123,7 @@ ggplot(draws_df) +
             fill = "white", color = "black", alpha = 0)
 ```
 
-multilevel 
+-----------------------------multilevel----------------------------
 ```{r}
 # chains mixing plot
 
@@ -153,18 +150,31 @@ ggplot(draws_df_emp) +
 
 
 
-
-
-
-
-
 ```{r}
-ggplot(draws_df) +
+# prior predictions
+ggplot(draws_df_emp) +
   geom_histogram(aes(prior_preds), color = "darkblue", fill = "blue", alpha = 0.3) +
-  xlab("Predicted skied runs of 100 trials") +
+  xlab("Predicted skied runs of 1000 trials") +
+  ylab("Posterior Density") +
+  theme_classic()
+
+# posterior predictions 
+ggplot(draws_df_emp) +
+  geom_histogram(aes(posterior_preds), color = "darkblue", fill = "blue", alpha = 0.3, bins = 90)+
+  geom_point(x = sum(sim_df$outcome), y = 0, color = "red", shape = 17, size = 5) +  # not visible
+  xlab("Predicted skied runs out of 1000 trials") +
+  ylab("Posterior Density") +
+  theme_classic()
+
+ggplot(draws_df_emp) +
+  geom_histogram(aes(prior_preds), color = "lightblue", fill = "blue", alpha = 0.3, bins = 90) +
+  geom_histogram(aes(posterior_preds), color = "darkblue", fill = "blue", alpha = 0.3, bins = 90) +
+  geom_point(x = sum(sim_df$outcome), y = 0, color = "red", shape = 17, size = 5) +
+  xlab("Predicted skied runs out of 1000 trials") +
   ylab("Posterior Density") +
   theme_classic()
 ```
+maybe look at this later
 
 ```{r}
 # A plot of the proportion of right hand choices for the random agents
@@ -175,5 +185,56 @@ p1 <- ggplot(sim_df, aes(trial, skier, group = outcome, color = outcome)) +
   theme_classic() 
 p1
 ```
+
+```{r}
+pacman::p_load(future, purrr, furrr)
+plan(multisession, workers = 4)
+
+sim_d_and_fit <- function(prior_mean, prior_sd) {
+  
+    data <- list(
+        N = nrow(sim_df),
+        outcome = sim_df$outcome, # the outcome (did they ski or not)
+        Source1 = sim_df$Source1, # own rating on 0-1 space
+        Source2 = sim_df$Source2, # group rating on 0-1 space
+        prior_mean = prior_mean,
+        prior_sd = prior_sd
+      )
+    
+    samples <- mod_simpleBayes$sample(
+      data = data_simpleBayes,
+      seed = 1000,
+      chains = 1,
+      parallel_chains = 1,
+      threads_per_chain = 1,
+      iter_warmup = 1000,
+      iter_sampling = 2000,
+      refresh = 0,
+      max_treedepth = 20,
+      adapt_delta = 0.99,
+    )
+    
+    draws_df_sens <- as_draws_df(samples$draws()) 
+      temp <- tibble(theta_prior = draws_df_sens$theta_prior, 
+                     theta_posterior = draws_df_sens$theta_posterior, 
+                     prior_preds = draws_df_sens$prior_preds, 
+                     posterior_preds = draws_df_sens$posterior_preds, 
+                     prior_mean = prior_mean,
+                     prior_sd = prior_sd)
+    
+    return(temp)
+  
+}
+
+
+
+
+recovery_df <- future_pmap_dfr(priors, sim_d_and_fit, .options = furrr_options(seed = TRUE))
+```
+
+
+
+
+
 
 
