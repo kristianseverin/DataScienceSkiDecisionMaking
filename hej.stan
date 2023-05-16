@@ -2,8 +2,10 @@
 data {
   int<lower=0> N;  // number of trials
   array[N] int outcome; // rating of safety for each 'N'
-  array[N] real<lower=0, upper = 1> Source1;  // rating scaled 0.1 - 0.9
-  array[N] real<lower=0, upper = 1> Source2;  // feedback scaled 0.1 - 0.9
+  array[N] real<lower=0, upper = 1> Source1;
+  array[N] real<lower=0, upper = 1> Source2;
+  real prior_mean[N];
+  real<lower=0> prior_sd[N];
   
 }
 
@@ -24,7 +26,7 @@ parameters {
 }
 
 model {
- target += normal_lpdf(bias | 0, .15);
+ target += normal_lpdf(bias | prior_mean, prior_sd);
  target += bernoulli_logit_lpmf(outcome | bias + 0.5*to_vector(l_Source1) + 0.5*to_vector(l_Source2));
 }
 
