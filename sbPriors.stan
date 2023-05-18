@@ -1,18 +1,19 @@
 // The input data is a vector 'y' of length 'N'.
 data {
   int<lower=0> N;  // number of trials
-  array[N] int outcome; // rating of safety for each 'N'
-  array[N] real<lower=0, upper = 1> Source1;
-  array[N] real<lower=0, upper = 1> Source2;
-  real prior_mean;
-  real<lower=0> prior_sd;
+  int<lower=0> S;  // number of skiers
+  array[N,S] int outcome; // rating of safety for each 'N'
+  array[N,S] real<lower=0, upper = 1> Source1;  // rating scaled 0.1 - 0.9
+  array[N,S] real<lower=0, upper = 1> Source2;  // feedback scaled 0.1 - 0.9
+  real prior_mean;  // prior for prior sensitivity analysis
+  real<lower=0> prior_sd;  // prior standard deviation for sensititvty analysis
   
 }
 
 // transformed data
 transformed data{
-  array[N] real l_Source1;
-  array[N] real l_Source2;
+  array[N, S] real l_Source1;
+  array[N, S] real l_Source2;
   l_Source1 = logit(Source1);  // get it on a -inf - inf scale
   l_Source2 = logit(Source2);  // get it on a -inf - inf scale
 }
@@ -22,29 +23,56 @@ transformed data{
 // accepts parameters 'bias' and 'sd'
 // i.e., do you have a prevaleence of choosing to ski or not when faced with a choice
 parameters {
-  real bias;
+  real biasM;
+  real biasSD;
+  array[S] real z_bias;
 }
 
+transformed parameters{
+  vector[S] biasC;
+  vector[S] bias;
+  biasC = biasSD * to_vector(z_bias);
+  bias = biasM + biasC;
+}
+
+
 model {
- target += normal_lpdf(bias | prior_mean, prior_sd);
- target += bernoulli_logit_lpmf(outcome | bias + to_vector(l_Source1) + to_vector(l_Source2));
+  // Prior
+  for (s in 1:S){
+  target += normal_lpdf(bias | prior_mean, prior_sd);
+  }
+  
+  target +=  normal_lpdf(biasM | 0, 1);
+  target +=  normal_lpdf(biasSD | 0, 1)  - normal_lccdf(0 | 0, 1);
+  target += std_normal_lpdf(to_vector(z_bias));
+  
+  for (s in 1:S){
+  target +=  bernoulli_logit_lpmf(outcome[,s] | bias[s] + 
+                                          0.5*to_vector(l_Source1[,s]) + 
+                                          0.5*to_vector(l_Source2[,s]));
+
+  }
 }
 
 generated quantities{
-  real bias_prior;
-  real bias_posterior;
-  int<lower=0, upper=N> prior_preds; // distribution of skiing/non skiing choices according to the prior
-  int<lower=0, upper=N> posterior_preds; // distribution of skiing/non skiing choices according to the posterior
+  array[S] int prior_preds; // distribution of skiing/non-skiing choices according to the prior
+  array[S] int posterior_preds; // distribution of skiing/non-skiing choices according to the posterior
+  array[S, N] real log_lik;
   
-  array[N] real log_lik;
+  array[S] real bias_prior;
+  array[S] real bias_posterior;
   
-  bias_prior = inv_logit(normal_rng(0, 1));
-  bias_posterior = inv_logit(bias);
-  prior_preds = binomial_rng(N, inv_logit(bias_prior));
-  posterior_preds = binomial_rng(N, inv_logit(bias));
-  
-  for (n in 1:N){  
-    log_lik[n] = bernoulli_logit_lpmf(outcome[n] | bias + 0.5*l_Source1[n] +  0.5*l_Source2[n]);
+  for (s in 1:S) {
+    bias_prior[s] = inv_logit(normal_rng(0, 1));
+    bias_posterior[s] = inv_logit(bias[s]);
+    
+    for (n in 1:N) {
+   
+      log_lik[s, n] = bernoulli_logit_lpmf(outcome[n, s] | bias[s] + 0.5*l_Source1[n, s] + 0.5*l_Source2[n, s]);
+    }
   }
-  
+for (s in 1:S) {
+  prior_preds[s] = binomial_rng(1, bias_prior[s]);
+  posterior_preds[s] = binomial_rng(1, inv_logit(bias[s]));
+  }
 }

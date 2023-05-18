@@ -36,7 +36,7 @@ simulating_skiing <- function(nskiers,ntrials, bias){
                             round(temp_a[i]*11,0)))
       # this nested ifelse gets the outcome. Did the person ski or not
       outcome[i] <- ifelse(a[i] >= 8, 0, 
-                           ifelse(a[i] <= 4, 1, rbinom(1, 1, .5))) # all integers between 4 and 8 are computed as 50/50 
+                    ifelse(a[i] <= 4, 1, rbinom(1, 1, .5))) # all integers between 4 and 8 are computed as 50/50 
      
       
     }
