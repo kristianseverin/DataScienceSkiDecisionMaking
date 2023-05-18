@@ -32,12 +32,13 @@ bias <- .8
 accumulatedAviCond <- c(0,1,2,3,4,5,6)
 accumulatedTerrainCond <- c(0,1,2,3,4)
 
+# use self-written function to get simulated data
 sim_df <- simulating_skiing(nskiers,ntrials, bias)
 
 ```
 
 ```{r}
-# get sources within scope
+# get sources within scope for working with log-odds (i.e., avoid 0 and 1)
 sim_df$Source1 <- ifelse(sim_df$Source1 == 0, 0.01, 
                   ifelse(sim_df$Source1 == 1, 0.99, sim_df$Source1))  # i.e., hardcode 0 to be 0.01 and 1 to be 0.99
 
@@ -46,37 +47,29 @@ sim_df$Source2 <- ifelse(sim_df$Source2 == 0, 0.01,
 ```
 
 ```{r}
-# trying to add different priors to bias
-prior_mean <- seq(0.1, , 0.1)  # sequence of 0.1-1 by 1
-prior_sd <- seq(0.1, 1, 0.1)
-priors <-  expand.grid(prior_mean, prior_sd)
-priors <- tibble(prior_mean = priors$Var1, prior_sd = priors$Var2)
+# pivot data wider
+sim_wide <- sim_df %>% 
+  group_by(skier) %>% 
+  subset(select = c(skier, outcome, Source1, Source2)) %>%
+  mutate(row = row_number()) %>% 
+  pivot_wider(names_from = skier, values_from = c(outcome, Source1, Source2))
 
-sim_df <- cbind(sim_df, priors)
-```
-
-
-```{r}
-for (s in 1:nskiers){
-  df_temp <- sim_df %>% 
-    filter(skier == s)
-
-# prepare data for stan - simple bayes
-data_simpleBayes <- list(
-  N = nrow(sim_df),
-  skiers = sim_df$skier,
-  outcome = sim_df$outcome, # the outcome (did they ski or not)
-  Source1 = sim_df$Source1, # own rating on 0-1 space
-  Source2 = sim_df$Source2, # group rating on 0-1 space
-  prior_mean = priors$prior_mean,
-  prior_sd = priors$prior_sd
+# Create the data
+data <- list(
+  N = ntrials,
+  S = nskiers,
+  outcome = as.matrix(sim_wide[,2:11]),
+  Source1 = as.matrix(sim_wide[,12:21]),
+  Source2 = as.matrix(sim_wide[,22:31])
 )
+
 # feed R the stan model
-file <- file.path("hej.stan")
+file <- file.path("simplebayesML.stan")
 mod_simpleBayes <- cmdstan_model(file, cpp_options = list(stan_threads = TRUE),
                      stanc_options = list("O1"))
+# create samples from the model
 samples_simple <- mod_simpleBayes$sample(
-  data = data_simpleBayes,
+  data = data,
   seed = 123,
   chains = 2,
   parallel_chains = 2,
@@ -86,15 +79,10 @@ samples_simple <- mod_simpleBayes$sample(
   refresh = 500
 )
 
-  temp <- as_draws_df(samples_simple$draws())
-  temp <- temp %>% 
-    mutate(skier = s)
-  
-
-  if (exists("draws_df_emp")) { draws_df_emp <- rbind(draws_df_emp, temp)} 
-  else{draws_df_emp <- temp} 
-}
+# get the resulting data frame
+draws_df <- as_draws_df(samples_simple$draws())
 ```
+
 
 ```{r}
 # basic evaluation
@@ -103,8 +91,7 @@ samples_simple$cmdstan_diagnose()
 samples_simple$summary()
 samples_simple$loo()
 # chains mixing plot
-draws_df <- as_draws_df(samples_simple$draws())
-ggplot(draws_df, aes(.iteration, bias, group = .chain, color = .chain)) +
+ggplot(draws_df, aes(.iteration, draws_df$`bias[10]`, group = .chain, color = .chain)) +
   geom_line(alpha = 0.5) +
   theme_classic()
 
@@ -186,6 +173,18 @@ p1 <- ggplot(sim_df, aes(trial, skier, group = outcome, color = outcome)) +
 p1
 ```
 
+
+
+```{r}
+# trying to add different priors to bias
+prior_mean <- seq(-3, 3, 0.5)  # sequence of 0.1-1 by 1
+prior_sd <- seq(0.1, 1, 0.1)
+priors <-  expand.grid(prior_mean, prior_sd)
+priors <- tibble(prior_mean = priors$Var1, prior_sd = priors$Var2)
+
+#sim_df <- cbind(sim_df, priors)
+```
+
 ```{r}
 pacman::p_load(future, purrr, furrr)
 plan(multisession, workers = 4)
@@ -215,8 +214,8 @@ sim_d_and_fit <- function(prior_mean, prior_sd) {
     )
     
     draws_df_sens <- as_draws_df(samples$draws()) 
-      temp <- tibble(theta_prior = draws_df_sens$theta_prior, 
-                     theta_posterior = draws_df_sens$theta_posterior, 
+      temp <- tibble(bias_prior = draws_df_sens$bias_prior, 
+                     bias_posterior = draws_df_sens$bias_posterior, 
                      prior_preds = draws_df_sens$prior_preds, 
                      posterior_preds = draws_df_sens$posterior_preds, 
                      prior_mean = prior_mean,
@@ -228,13 +227,52 @@ sim_d_and_fit <- function(prior_mean, prior_sd) {
 
 
 
-
+# calling function self-written function that simulates data and fits it by sequences of different priors
 recovery_df <- future_pmap_dfr(priors, sim_d_and_fit, .options = furrr_options(seed = TRUE))
+
+```
+
+```{r}
+# recovery
+ggplot(recovery_df, aes(prior_mean, bias_posterior)) +
+  geom_point(alpha = 0.1) +
+  geom_hline(yintercept = 0.8, color = "red") +
+  geom_smooth() +
+  facet_wrap(.~prior_sd) +
+  theme_classic()
 ```
 
 
+```{r}
+ggplot(sim_df, aes(sim_df$temp_a)) +
+  geom_histogram(bins = 10, alpha = 0.3, color = "black") +
+  theme_bw()
+```
 
+```{r}
+ggplot(sim_df, aes(Source1, temp_a, color = Source2, group = Source2)) +
+  geom_line() +
+  theme_bw()
+```
+```{r}
+ggplot(sim_df, aes(outcome)) +
+  geom_histogram(bins = 10, alpha = 0.3, color = "black") +
+  theme_bw()
+```
 
+```{r}
+ggplot(sim_df, aes(Source2, outcome, color = Source1, group = Source1)) +
+  geom_smooth(se = F) +
+  theme_bw()
 
+ggplot(sim_df, aes(sim_df$a)) +
+  geom_histogram(bins = 10, alpha = 0.3, color = "black") +
+  theme_bw()
+```
 
+```{r}
+ggplot(sim_df, aes(Source1, a, color = Source2, group = Source2)) +
+  geom_smooth() +
+  theme_bw()
+```
 

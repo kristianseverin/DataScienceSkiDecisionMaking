@@ -4,8 +4,8 @@ data {
   array[N] int outcome; // rating of safety for each 'N'
   array[N] real<lower=0, upper = 1> Source1;
   array[N] real<lower=0, upper = 1> Source2;
-  real prior_mean;
-  real<lower=0> prior_sd;
+ // real prior_mean;
+ // real<lower=0> prior_sd;
   
 }
 
@@ -13,8 +13,8 @@ data {
 transformed data{
   array[N] real l_Source1;
   array[N] real l_Source2;
-  l_Source1 = logit(Source1);  // get it on a -inf - inf scale
-  l_Source2 = logit(Source2);  // get it on a -inf - inf scale
+  l_Source1 = logit(Source1);  // get it on a 0 - 1 scale
+  l_Source2 = logit(Source2);  // get it on a 0 - 1 scale
 }
 
 
@@ -26,7 +26,7 @@ parameters {
 }
 
 model {
- target += normal_lpdf(bias | prior_mean, prior_sd);
+ target += normal_lpdf(bias | 0, 15);
  target += bernoulli_logit_lpmf(outcome | bias + to_vector(l_Source1) + to_vector(l_Source2));
 }
 
@@ -38,13 +38,13 @@ generated quantities{
   
   array[N] real log_lik;
   
-  bias_prior = inv_logit(normal_rng(0, 1));
+  bias_prior = inv_logit(normal_rng(0, 15));
   bias_posterior = inv_logit(bias);
   prior_preds = binomial_rng(N, inv_logit(bias_prior));
   posterior_preds = binomial_rng(N, inv_logit(bias));
   
   for (n in 1:N){  
-    log_lik[n] = bernoulli_logit_lpmf(outcome[n] | bias + 0.5*l_Source1[n] +  0.5*l_Source2[n]);
+    log_lik[n] = bernoulli_logit_lpmf(outcome[n] | bias + l_Source1[n] +  l_Source2[n]);
   }
   
 }

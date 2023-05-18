@@ -25,7 +25,7 @@ parameters {
 
 model {
  target += normal_lpdf(bias | 0, 1);
- target += bernoulli_logit_lpmf(outcome | bias + 0.5*to_vector(l_Source1) + 0.5*to_vector(l_Source2));
+ target += bernoulli_logit_lpmf(outcome | bias + to_vector(l_Source1) + to_vector(l_Source2));
 }
 
 generated quantities{
@@ -42,7 +42,7 @@ generated quantities{
   posterior_preds = binomial_rng(N, inv_logit(bias));
   
   for (n in 1:N){  
-    log_lik[n] = bernoulli_logit_lpmf(outcome[n] | bias + 0.5*l_Source1[n] +  0.5*l_Source2[n]);
+    log_lik[n] = bernoulli_logit_lpmf(outcome[n] | bias + l_Source1[n] +  l_Source2[n]);
   }
   
 }
