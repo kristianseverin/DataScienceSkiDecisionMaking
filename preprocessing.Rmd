@@ -1,0 +1,37 @@
+---
+title: "preprocessing"
+author: "Kristian Severin"
+date: "2023-05-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# load packages
+pacman::p_load(tidyverse)
+```
+
+```{r}
+# load data
+dataJoe <- readxl::read_xlsx("DataJohan.xlsx")
+dataDre <- readxl::read_xlsx("DataAndreas.xlsx")
+
+# add id
+dataJoe <- dataJoe %>% 
+  mutate(id = 1)
+
+# add id
+dataDre <- dataDre %>% 
+  mutate(id = 2)
+
+# merge
+skidata <- rbind(dataJoe, dataDre)
+
+# rename stuff 
+skidata$`Trip Planner Level of Caution (done at home)` <- skidata$`Trip Planner Level of Caution (done at home)`
+
+```
+

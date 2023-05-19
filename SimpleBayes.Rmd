@@ -216,42 +216,9 @@ p1
 
 
 
-```{r}
-# trying to add different priors to bias
-prior_mean <- seq(-3, 3, 0.5)  # sequence of 0.1-1 by 1
-prior_sd <- seq(0.1, 1, 0.1)
-priors <-  expand.grid(prior_mean, prior_sd)
-priors <- tibble(prior_mean = priors$Var1, prior_sd = priors$Var2)
-
-# Create the data
-dataSimpleBayes <- list(
-  N = ntrials,
-  S = nskiers,
-  outcome = as.matrix(sim_wide[,2:11]),
-  Source1 = as.matrix(sim_wide[,12:21]),
-  Source2 = as.matrix(sim_wide[,22:31]),
-  prior_mean = priors$prior_mean,  # adding the created priors
-  prior_sd = priors$prior_sd  # adding the created priors
-)
-
-# feed R the stan model
-file <- file.path("simplebayesML.stan")
-mod_simpleBayes <- cmdstan_model(file, cpp_options = list(stan_threads = TRUE),
-                     stanc_options = list("O1"))
-# create samples from the model
-samples_simple <- mod_simpleBayes$sample(
-  data = dataSimpleBayes,
-  seed = 123,
-  chains = 2,
-  parallel_chains = 2,
-  threads_per_chain = 2,
-  iter_warmup = 1500,
-  iter_sampling = 3000,
-  refresh = 500
-)
-```
 
 ```{r}
+# feed R the stan model with priors
 file <- file.path("sbPriors.stan")
 mod <- cmdstan_model(file, 
                      cpp_options = list(stan_threads = TRUE),
@@ -260,6 +227,7 @@ mod <- cmdstan_model(file,
 # use all cores on the computer
 plan(multisession, workers = 4)
 
+# a function that fits different prior values to the simulated data
 sim_d_and_fit <- function(prior_mean, prior_sd) {
     
     samples <- mod$sample(
@@ -284,12 +252,62 @@ sim_d_and_fit <- function(prior_mean, prior_sd) {
     )
     
     draws_df_sens <- as_draws_df(samples$draws()) 
-      temp <- tibble(bias_prior = draws_df_sens$`bias_prior[1]`, 
-                     bias_posterior = draws_df_sens$`bias_posterior[1]`, 
-                     prior_preds = draws_df_sens$`prior_preds[1]`, 
-                     posterior_preds = draws_df_sens$`posterior_preds[1]`, 
+      temp <- tibble(
+                     bias_prior1 = draws_df_sens$`bias_prior[1]`, 
+                     bias_posterior1 = draws_df_sens$`bias_posterior[1]`, 
+                     prior_preds1 = draws_df_sens$`prior_preds[1]`, 
+                     posterior_preds1 = draws_df_sens$`posterior_preds[1]`,
+                     
+                     bias_prior2 = draws_df_sens$`bias_prior[2]`, 
+                     bias_posterior2 = draws_df_sens$`bias_posterior[2]`, 
+                     prior_preds2 = draws_df_sens$`prior_preds[2]`, 
+                     posterior_preds2 = draws_df_sens$`posterior_preds[2]`,
+                     
+                     bias_prior3 = draws_df_sens$`bias_prior[3]`, 
+                     bias_posterior3 = draws_df_sens$`bias_posterior[3]`, 
+                     prior_preds3 = draws_df_sens$`prior_preds[3]`, 
+                     posterior_preds3 = draws_df_sens$`posterior_preds[3]`,
+                     
+                     bias_prior4 = draws_df_sens$`bias_prior[4]`, 
+                     bias_posterior4 = draws_df_sens$`bias_posterior[4]`, 
+                     prior_preds4 = draws_df_sens$`prior_preds[4]`, 
+                     posterior_preds4 = draws_df_sens$`posterior_preds[4]`,
+                     
+                     bias_prior5 = draws_df_sens$`bias_prior[5]`, 
+                     bias_posterior5 = draws_df_sens$`bias_posterior[5]`, 
+                     prior_preds5 = draws_df_sens$`prior_preds[5]`, 
+                     posterior_preds5 = draws_df_sens$`posterior_preds[5]`,
+                     
+                     bias_prior6 = draws_df_sens$`bias_prior[6]`, 
+                     bias_posterior6 = draws_df_sens$`bias_posterior[6]`, 
+                     prior_preds6 = draws_df_sens$`prior_preds[6]`, 
+                     posterior_preds6 = draws_df_sens$`posterior_preds[6]`,
+                     
+                     bias_prior7 = draws_df_sens$`bias_prior[7]`, 
+                     bias_posterior7 = draws_df_sens$`bias_posterior[7]`, 
+                     prior_preds7 = draws_df_sens$`prior_preds[7]`, 
+                     posterior_preds7 = draws_df_sens$`posterior_preds[7]`,
+                     
+                     bias_prior8 = draws_df_sens$`bias_prior[8]`, 
+                     bias_posterior8 = draws_df_sens$`bias_posterior[8]`, 
+                     prior_preds8 = draws_df_sens$`prior_preds[8]`, 
+                     posterior_preds8 = draws_df_sens$`posterior_preds[8]`,
+                     
+                     bias_prior9 = draws_df_sens$`bias_prior[9]`, 
+                     bias_posterior9 = draws_df_sens$`bias_posterior[9]`, 
+                     prior_preds9 = draws_df_sens$`prior_preds[9]`, 
+                     posterior_preds9 = draws_df_sens$`posterior_preds[9]`,
+                     
+                     bias_prior10 = draws_df_sens$`bias_prior[10]`, 
+                     bias_posterior10 = draws_df_sens$`bias_posterior[10]`, 
+                     prior_preds10 = draws_df_sens$`prior_preds[10]`, 
+                     posterior_preds10 = draws_df_sens$`posterior_preds[10]`,
+                     
                      prior_mean = prior_mean,
-                     prior_sd = prior_sd)
+                     prior_sd = prior_sd,
+                     
+                     
+                     )
     
     return(temp)
   
@@ -304,12 +322,21 @@ recovery_df <- future_pmap_dfr(priors, sim_d_and_fit, .options = furrr_options(s
 
 ```{r}
 # recovery
-ggplot(recovery_df, aes(prior_mean, bias_posterior)) +
+ggplot(recovery_df, aes(prior_mean, bias_posterior1)) +
   geom_point(alpha = 0.1) +
   geom_hline(yintercept = 0.8, color = "red") +
   geom_smooth() +
   facet_wrap(.~prior_sd) +
   theme_classic()
+
+ggplot(recovery_df, aes(prior_mean, bias_posterior2)) +
+  geom_point(alpha = 0.1) +
+  geom_hline(yintercept = 0.8, color = "red") +
+  geom_smooth() +
+  facet_wrap(.~prior_sd) +
+  theme_classic()
+
+
 ```
 
 
