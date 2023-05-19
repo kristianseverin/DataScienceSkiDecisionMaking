@@ -64,7 +64,7 @@ generated quantities{
     }
   }
 for (s in 1:S) {
-  prior_preds[s] = binomial_rng(1, bias_prior[s]);
-  posterior_preds[s] = binomial_rng(1, inv_logit(bias[s]));
+  prior_preds[s] = binomial_rng(1, bias_prior[s]*logit(0.7));
+  posterior_preds[s] = binomial_rng(1, inv_logit(bias[s]*logit(0.7)));
   }
 }

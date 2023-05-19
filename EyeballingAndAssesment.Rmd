@@ -1,0 +1,68 @@
+---
+title: "DataAssesment"
+author: "Kristian Severin"
+date: "2023-05-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+# eyeballing data plots
+
+ggplot(sim_df, aes(sim_df$temp_a)) +
+  geom_histogram(bins = 10, alpha = 0.3, color = "black") +
+  theme_bw()
+
+ggplot(sim_df, aes(Source1, temp_a, color = Source2, group = Source2)) +
+  geom_line() +
+  theme_bw()
+
+ggplot(sim_df, aes(outcome)) +
+  geom_histogram(bins = 10, alpha = 0.3, color = "black") +
+  theme_bw()
+ggplot(sim_df, aes(Source2, outcome, color = Source1, group = Source1)) +
+  geom_smooth(se = F) +
+  theme_bw()
+
+ggplot(sim_df, aes(sim_df$a)) +
+  geom_histogram(bins = 10, alpha = 0.3, color = "black") +
+  theme_bw()
+
+ggplot(sim_df, aes(Source1, a, color = Source2, group = Source2)) +
+  geom_smooth() +
+  theme_bw()
+
+```
+
+```{r}
+# eyeballing data plots
+
+ggplot(skidata, aes(skidata$TerrainCharacteristics)) +
+  geom_histogram(bins = 10, alpha = 0.3, color = "black") +
+  theme_bw()
+
+ggplot(skidata, aes(TerrainCharacteristics, `To ski or not to ski`, color = AvalancheConditions, group = AvalancheConditions)) +
+  geom_line() +
+  theme_bw()
+
+ggplot(skidata, aes(skidata$`To ski or not to ski`)) +
+  geom_histogram(bins = 10, alpha = 0.3, color = "black") +
+  theme_bw()
+
+ggplot(skidata, aes(skidata$AvalancheConditions, skidata$TerrainCharacteristics, color = skidata$`To ski or not to ski`, group = skidata$`To ski or not to ski`)) +
+  geom_smooth(se = F) +
+  theme_bw()
+
+ggplot(skidata, aes(skidata$TerrainCharacteristics)) +
+  geom_histogram(bins = 10, alpha = 0.3, color = "black") +
+  theme_bw()
+
+ggplot(skidata, aes(skidata$TerrainCharacteristics, skidata$AvalancheConditions, color = skidata$AvalancheConditions, group = skidata$AvalancheConditions)) +
+  geom_smooth() +
+  theme_bw()
+```

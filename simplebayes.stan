@@ -33,6 +33,12 @@ generated quantities{
   real bias_posterior;
   int<lower=0, upper=N> prior_preds; // distribution of skiing/non skiing choices according to the prior
   int<lower=0, upper=N> posterior_preds; // distribution of skiing/non skiing choices according to the posterior
+  int<lower=0, upper=N> prior_preds5;
+  int<lower=0, upper=N> post_preds5;
+  int<lower=0, upper=N> prior_preds7;
+  int<lower=0, upper=N> post_preds7;
+  int<lower=0, upper=N> prior_preds9;
+  int<lower=0, upper=N> post_preds9;
   
   array[N] real log_lik;
   
@@ -40,6 +46,12 @@ generated quantities{
   bias_posterior = inv_logit(bias);
   prior_preds = binomial_rng(N, bias_prior);
   posterior_preds = binomial_rng(N, inv_logit(bias));
+  prior_preds5 = binomial_rng(N, inv_logit(bias_prior * logit(0.5)));
+  prior_preds7 = binomial_rng(N, inv_logit(bias_prior * logit(0.7)));
+  prior_preds9 = binomial_rng(N, inv_logit(bias_prior * logit(0.9)));
+  post_preds5 = binomial_rng(N, inv_logit(bias * logit(0.5)));
+  post_preds7 = binomial_rng(N, inv_logit(bias * logit(0.7)));
+  post_preds9 = binomial_rng(N, inv_logit(bias * logit(0.9)));
   
   for (n in 1:N){  
     log_lik[n] = bernoulli_logit_lpmf(outcome[n] | bias + l_Source1[n] +  l_Source2[n]);

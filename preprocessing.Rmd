@@ -31,7 +31,16 @@ dataDre <- dataDre %>%
 skidata <- rbind(dataJoe, dataDre)
 
 # rename stuff 
-skidata$`Trip Planner Level of Caution (done at home)` <- skidata$`Trip Planner Level of Caution (done at home)`
+skidata <- skidata %>% rename("AvalancheConditions" = "Avi Conditions (opdaterer automatisk)")
+skidata <- skidata %>% rename("TerrainCharacteristics" = "Terrain Characteristics (opdaterer automatisk)")
+skidata <- skidata %>% rename("TripLevel" = "Trip Planner Level of Caution (done at home)")
+skidata <- skidata %>% rename("outcome" = "To ski or not to ski")
+
+# if value then
+skidata$outcome <- ifelse(skidata$outcome == "Ski", 1, 
+                   ifelse(skidata$outcome == "Not to ski", 0, skidata$outcome))
+
+write_csv(skidata, "/Users/kristian/Documents/Skole/8. Semester/Data Science/Exam/DataScienceSkiDecisionMaking/skidata.csv")
 
 ```
 

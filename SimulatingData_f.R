@@ -21,11 +21,11 @@ simulating_skiing <- function(nskiers,ntrials, bias){
       # create random assessment for avi conditions
       assessmentAvi[i] <- sample(accumulatedAviCond, 1, replace = TRUE)
       # make assessment for avi cond on 0-1 space (divide with n+1)
-      Source1[i] <- assessmentAvi[i] / 8
+      Source1[i] <- assessmentAvi[i] / 7  # n is 6
       # create random assessment for terrain conditions
       assessmentTerrain[i] <- sample(accumulatedTerrainCond, 1, replace = TRUE)
       # make assessment for terrain cond on 0-1 space (divide with n+1)
-      Source2[i] <- assessmentTerrain[i] / 6
+      Source2[i] <- assessmentTerrain[i] / 5  # n is 4
       # get temporay overall assessment
       temp_a[i] <- SimpleBayes_f(bias, Source1[i], Source2[i])
       
