@@ -18,7 +18,8 @@ pacman::p_load(
   patchwork,
   future, 
   purrr, 
-  furrr
+  furrr,
+  bayesplot
   )
 
 source("SimpleBayes_f.R")  # get self-written simplebayes function from source
@@ -110,7 +111,7 @@ sim_wide <- sim_df %>%
 
 # Create the data
 dataSimpleBayes <- list(
-  N = ntrials,
+  N = nrow(sim_wide),
   S = nskiers,
   outcome = as.matrix(sim_wide[,2:11]),
   Source1 = as.matrix(sim_wide[,12:21]),
@@ -228,6 +229,64 @@ ggplot(draws_df) +
 ```
 
 
+```{r}
+# use all cores on the computer
+plan(multisession, workers = 4)
+
+
+# pivot data wider
+sim_wide_param <- sim_df %>% 
+  group_by(skier) %>% 
+  subset(select = c(skier, bias, outcome, Source1, Source2)) %>%
+  mutate(row = row_number()) %>% 
+  pivot_wider(names_from = skier, values_from = c(bias, outcome, Source1, Source2))
+
+# Create the data
+  dataParameterRecovery <- list(
+  N = nrow(sim_wide),
+  S = nskiers,
+  bias = as.matrix(sim_wide_param[,2:11]),
+  outcome = as.matrix(sim_wide_param[,12:21]),
+  Source1 = as.matrix(sim_wide_param[,22:31]),
+  Source2 = as.matrix(sim_wide_param[,32:41])
+)
+  
+# parameter recovery 
+parameter_recovery_df <- NULL  
+
+for (biasLvl in unique(sim_df$bias)) {
+  
+   param_data <- sim_df %>% subset(
+      bias == biasLvl
+    )
+   
+  samples <- mod_simpleBayes$sample(
+      data = dataParameterRecovery,
+      seed = 123,
+      chains = 1,
+      parallel_chains = 1,
+      threads_per_chain = 1,
+      iter_warmup = 1000,
+      iter_sampling = 2000,
+      refresh = 0,
+      max_treedepth = 20,
+      adapt_delta = 0.99,
+    )
+   
+  draws_df_param_recov <- as_draws_df(samples$draws()) 
+  temp_param <- tibble(biasEstScaled = inv_logit_scaled(draws_df_param_recov$bias), 
+                   biasTrue = biasLvl, biasEst = draws_df_param_recov$bias)
+    
+    
+    if (exists("parameter_recovery_df")) {parameter_recovery_df <- rbind(parameter_recovery_df, temp_param)} else {parameter_recovery_df <- temp_param}
+    
+  }
+  
+
+
+
+```
+
 
 ```{r}
 # prior predictions
@@ -252,12 +311,15 @@ ggplot(draws_df) +
   xlab("Predicted skied runs out of 1000 trials") +
   ylab("Posterior Density") +
   theme_classic()
+
 ```
+
+
 maybe look at this later
 
 ```{r}
 # A plot of the proportion of right hand choices for the random agents
-p1 <- ggplot(sim_df, aes(trial, skier, group = outcome, color = outcome)) + 
+p1 <- ggplot(sim_df, aes(skier, trial, group = outcome, color = outcome)) + 
   geom_line(alpha = 0.5) + 
   geom_hline(yintercept = 0.5, linetype = "dashed") + 
   ylim(0,1) + 
@@ -284,7 +346,7 @@ recovery_df <- future_pmap_dfr(priors, sim_d_and_fit, .options = furrr_options(s
 ```
 
 ```{r}
-# recovery
+# prior sensitivity
 ggplot(recovery_df, aes(prior_mean, bias_posterior1)) +
   geom_point(alpha = 0.1) +
   geom_hline(yintercept = 0.8, color = "red") +
@@ -474,8 +536,8 @@ Dre <- ggplot(draws_df_ski_Dre) +
   theme_bw()+
   geom_vline(xintercept = 0.77, linetype = "dashed", size = 1.5) +
     annotate("text", x = 0.01, y = 40,  label="Simulated Bias", hjust = 0)+
-  geom_vline(xintercept = summaryDre$q5[35], size = 0.5)+
-  geom_vline(xintercept = summaryDre$q95[35], size = 0.5)+
+  geom_vline(xintercept = summaryDre$q5[35], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
+  geom_vline(xintercept = summaryDre$q95[35], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
   geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 38, ymax = 48), 
             fill = "white", color = "black", alpha = 0)
 
@@ -491,8 +553,8 @@ Joe <- ggplot(draws_df_ski_Joe) +
   theme_bw()+
   geom_vline(xintercept = 0.77, linetype = "dashed", size = 1.5) +
     annotate("text", x = 0.01, y = 40,  label="Simulated Bias", hjust = 0)+
-  geom_vline(xintercept = summaryJoe$q5[23], size = 0.5)+
-  geom_vline(xintercept = summaryJoe$q95[23], size = 0.5)+
+  geom_vline(xintercept = summaryJoe$q5[23], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
+  geom_vline(xintercept = summaryJoe$q95[23], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
   geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 38, ymax = 48), 
             fill = "white", color = "black", alpha = 0)
 
@@ -500,5 +562,14 @@ Dre+Joe
 
 ```
 
+```{r}
+mcmc_areas(
+  draws_df_ski_Joe,
+  pars = c("bias_posterior[1]"),
+  prob = 0.95, # 80% intervals
+  prob_outer = 0.99, # 99%
+  point_est = "mean"
+)
+```
 
 

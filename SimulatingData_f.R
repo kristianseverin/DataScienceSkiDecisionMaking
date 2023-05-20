@@ -15,6 +15,10 @@ simulating_skiing <- function(nskiers,ntrials, bias){
     temp_a <- array(NA, ntrials)  # temporary overall assessment
     a <- array(NA, ntrials) # overall assessment
     outcome <- array(NA, ntrials) # did they ski
+    bias <- array(NA, ntrials)
+    
+    # create different bias levels (true parameter values)
+    for (biasTrue in seq(0.5, 0.95, 0.05)){
     
     
     for (i in 1:ntrials){
@@ -27,8 +31,8 @@ simulating_skiing <- function(nskiers,ntrials, bias){
       # make assessment for terrain cond on 0-1 space (divide with n+1)
       Source2[i] <- assessmentTerrain[i] / 5  # n is 4
       # get temporay overall assessment
-      temp_a[i] <- SimpleBayes_f(bias, Source1[i], Source2[i])
-      
+      temp_a[i] <- SimpleBayes_f(biasTrue, Source1[i], Source2[i])
+    
       
       # this nested ifelse gets an overall assessment on a normal scale
       a[i] <- ifelse(round(temp_a[i]*11,0) < 0, 0,  # a can be an integer from 0-10 
@@ -38,15 +42,15 @@ simulating_skiing <- function(nskiers,ntrials, bias){
       outcome[i] <- ifelse(a[i] >= 8, 0, 
                     ifelse(a[i] <= 4, 1, rbinom(1, 1, .5))) # all integers between 4 and 8 are computed as 50/50 
      
-      
-    }
+    
+    
     
     # get everything in a tibble 
-    sim_df <- tibble(skier, trial = seq(ntrials), bias, assessmentAvi, assessmentTerrain, Source1, Source2,temp_a, a, outcome)
-    
+    sim_df <- tibble(skier, trial = seq(ntrials), bias = biasTrue, assessmentAvi, assessmentTerrain, Source1, Source2,temp_a, a, outcome)
+    }
     if (exists("df")) { df <- rbind(df, sim_df)} else{df <- sim_df}
     
-    
+  } 
   }
   return(df)
   
