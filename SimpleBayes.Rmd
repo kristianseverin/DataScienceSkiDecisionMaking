@@ -19,12 +19,14 @@ pacman::p_load(
   future, 
   purrr, 
   furrr,
-  bayesplot
+  bayesplot,
+  drc
   )
 
 source("SimpleBayes_f.R")  # get self-written simplebayes function from source
 source("SimulatingData_f.R")  # get self-written data-simulating function from source
 source("sim_d_and_fit_f.R")  # get self-written function that fits different priors to the model 
+source("parameter_recovery_f.R")  # get self-written function that recovers parameters
 ```
 
 Simulating data
@@ -85,7 +87,7 @@ draws_df_sens <- as_draws_df(samples_simple_sens$draws())
 ggplot(draws_df_sens) +
   geom_density(aes(inv_logit_scaled(bias)), fill = "blue", alpha = 0.3) +  # get bias on log-odds
   geom_density(aes(bias_prior), fill = "red", alpha = 0.3) +
-  geom_vline(xintercept = 0, size = 2) +
+  #geom_vline(xintercept = 0, size = 2) +
   xlab("Bias") +
   ylab("Posterior Density") +
   theme_classic()
@@ -95,7 +97,7 @@ ggplot(draws_df_sens) +
   geom_histogram(aes(`prior_preds5`), color = "yellow", fill = "lightyellow", alpha = 0.2) +
   geom_histogram(aes(`prior_preds7`), color = "green", fill = "lightgreen", alpha = 0.2) +
   geom_histogram(aes(`prior_preds9`), color = "blue", fill = "lightblue", alpha = 0.2) +
-  xlab("Predicted skied runs out of 1000") +
+  xlab("Predicted skied runs out of 10000") +
   ylab("Posterior Density") +
   theme_classic()
 ```
@@ -105,9 +107,9 @@ ggplot(draws_df_sens) +
 # pivot data wider
 sim_wide <- sim_df %>% 
   group_by(skier) %>% 
-  subset(select = c(skier, outcome, Source1, Source2)) %>%
+  subset(select = c(skier, outcome, Source1, Source2, bias)) %>%
   mutate(row = row_number()) %>% 
-  pivot_wider(names_from = skier, values_from = c(outcome, Source1, Source2))
+  pivot_wider(names_from = skier, values_from = c(outcome, Source1, Source2, bias))
 
 # Create the data
 dataSimpleBayes <- list(
@@ -115,7 +117,8 @@ dataSimpleBayes <- list(
   S = nskiers,
   outcome = as.matrix(sim_wide[,2:11]),
   Source1 = as.matrix(sim_wide[,12:21]),
-  Source2 = as.matrix(sim_wide[,22:31])
+  Source2 = as.matrix(sim_wide[,22:31]),
+  bias = as.matrix(sim_wide[,32:41])
 )
 
 # feed R the stan model
@@ -226,6 +229,20 @@ ggplot(draws_df) +
   geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 38, ymax = 48), 
             fill = "white", color = "black", alpha = 0)
 
+# bias plot
+ggplot(draws_df) +
+  geom_density(aes(`bias_posterior[3]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`bias_prior[3]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = sim_df$bias[1], linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)
+
 ```
 
 
@@ -233,35 +250,25 @@ ggplot(draws_df) +
 # use all cores on the computer
 plan(multisession, workers = 4)
 
+#sim_d_and_fit_parameter_recovery <- function(prior_mean, prior_sd) {
 
-# pivot data wider
-sim_wide_param <- sim_df %>% 
-  group_by(skier) %>% 
-  subset(select = c(skier, bias, outcome, Source1, Source2)) %>%
-  mutate(row = row_number()) %>% 
-  pivot_wider(names_from = skier, values_from = c(bias, outcome, Source1, Source2))
-
-# Create the data
-  dataParameterRecovery <- list(
-  N = nrow(sim_wide),
-  S = nskiers,
-  bias = as.matrix(sim_wide_param[,2:11]),
-  outcome = as.matrix(sim_wide_param[,12:21]),
-  Source1 = as.matrix(sim_wide_param[,22:31]),
-  Source2 = as.matrix(sim_wide_param[,32:41])
-)
-  
 # parameter recovery 
 parameter_recovery_df <- NULL  
 
-for (biasLvl in unique(sim_df$bias)) {
+for (biasLvl in unique(sim_wide$bias_4)) {
   
-   param_data <- sim_df %>% subset(
-      bias == biasLvl
+  dataSimpleBayesParam <- sim_wide %>% filter(
+      bias_4 == biasLvl
     )
-   
+  
   samples <- mod_simpleBayes$sample(
-      data = dataParameterRecovery,
+      data = list(
+        N = 100,
+        S = nskiers,
+        outcome = as.matrix(dataSimpleBayesParam[,2:11])[1:100,],
+        Source1 = as.matrix(sim_wide[,12:21])[1:100,],
+        Source2 = as.matrix(sim_wide[,22:31])[1:100,]
+      ),
       seed = 123,
       chains = 1,
       parallel_chains = 1,
@@ -271,20 +278,32 @@ for (biasLvl in unique(sim_df$bias)) {
       refresh = 0,
       max_treedepth = 20,
       adapt_delta = 0.99,
-    )
+      )
    
   draws_df_param_recov <- as_draws_df(samples$draws()) 
-  temp_param <- tibble(biasEstScaled = inv_logit_scaled(draws_df_param_recov$bias), 
-                   biasTrue = biasLvl, biasEst = draws_df_param_recov$bias)
+  temp_param <- tibble(biasEstScaled = inv_logit_scaled(draws_df_param_recov$`bias[4]`), 
+                   biasTrue = biasLvl, 
+                   biasEst = draws_df_param_recov$`bias[4]`)
     
     
     if (exists("parameter_recovery_df")) {parameter_recovery_df <- rbind(parameter_recovery_df, temp_param)} else {parameter_recovery_df <- temp_param}
     
   }
   
+#return(parameter_recovery_df)
 
+#}
+plan(multisession, workers = 4)
+recovery_df_parameter_recovery <- future_pmap_dfr(priors, parameter_recovery, .options = furrr_options(seed = TRUE))
+```
 
-
+```{r}
+# reovery plot
+ggplot(recovery_df_parameter_recovery, aes(biasTrue1, biasEstScaled1)) +
+  geom_point(alpha = 0.1) +
+  facet_wrap(~prior_sd)
+  geom_smooth() +
+  theme_classic()
 ```
 
 
@@ -331,6 +350,12 @@ p1
 
 
 ```{r}
+# adding different priors for bias
+prior_mean <- seq(-3, 3, .5)
+prior_sd <- seq(0.1, 1, 0.1)
+priors <-  expand.grid(prior_mean, prior_sd)
+priors <- tibble(prior_mean = priors$Var1, prior_sd = priors$Var2)
+
 # feed R the stan model with priors
 file <- file.path("sbPriors.stan")
 mod <- cmdstan_model(file, 
@@ -566,7 +591,15 @@ Dre+Joe
 mcmc_areas(
   draws_df_ski_Joe,
   pars = c("bias_posterior[1]"),
-  prob = 0.95, # 80% intervals
+  prob = 0.95, # 95% intervals
+  prob_outer = 0.99, # 99%
+  point_est = "mean"
+)
+
+mcmc_areas(
+  draws_df_ski_Dre,
+  pars = c("bias_posterior[1]"),
+  prob = 0.95, # 95% intervals
   prob_outer = 0.99, # 99%
   point_est = "mean"
 )

@@ -34,8 +34,8 @@ transformed parameters{
 
 
 model {
-  target +=  normal_lpdf(biasM | 0, 1);
-  target +=  normal_lpdf(biasSD | 0, 1)  - normal_lccdf(0 | 0, 1);
+  target +=  normal_lpdf(biasM | 0, 3);
+  target +=  normal_lpdf(biasSD | 0, 3)  - normal_lccdf(0 | 0, 3);
   target += std_normal_lpdf(to_vector(z_bias));
   
   for (s in 1:S){
