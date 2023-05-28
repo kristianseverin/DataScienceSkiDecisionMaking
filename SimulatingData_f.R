@@ -18,7 +18,7 @@ simulating_skiing <- function(nskiers,ntrials, bias){
     bias <- array(NA, ntrials)
     
     # create different bias levels (true parameter values)
-    for (biasTrue in seq(0.5, 1, 0.1)){
+    for (biasTrue in seq(0, 1, 0.1)){
     
     
     for (i in 1:ntrials){

@@ -1,0 +1,469 @@
+---
+title: "weightedBayes"
+author: "Kristian Severin"
+date: "2023-05-27"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# loading packages
+pacman::p_load(  
+  tidyverse,
+  brms,
+  cmdstanr,
+  patchwork,
+  future, 
+  purrr, 
+  furrr,
+  bayesplot,
+  drc
+  )
+
+source("weightedBayes_f.R")
+```
+
+```{r}
+nskiers <- 10
+bias <- seq(0.1,0.9, 0.1)
+trials <- seq(10)
+Source1 <- seq(0.1,0.9, 0.1)
+Source2 <- seq(0.1,0.9, 0.1)
+w1 <- seq(0.5, 1, 0.1)
+w2 <- seq(0.5, 1, 0.1)
+
+db <- expand.grid(bias = bias, trials, Source1 = Source1, Source2 = Source2, w1 = w1, w2 = w2)
+
+for (n in seq(nrow(db))) {
+  db$beliefAssessment[n] <- WeightedBayes_f(db$bias[n], db$Source1[n], db$Source2[n],db$w1[n], db$w2[n])
+ 
+  db$outcome[n] <- rbinom(1,1, db$beliefAssessment[n])
+ 
+  db$continuous[n] <- db$beliefAssessment[n] * 11
+ 
+  db$discrete[n] <- round(db$beliefAssessment[n] * 11,0)
+ 
+}
+
+db <- rename(db, "skier" = "Var2") 
+
+db <- sample_n(db, size = 26244)
+
+db <- db %>% na.omit()
+```
+
+
+```{r}
+# pivot data wider
+sim_wide_weighted <- db %>% 
+  group_by(skier) %>% 
+  subset(select = c(skier, outcome, Source1, Source2, bias)) %>%
+  mutate(row = row_number()) %>% 
+  pivot_wider(names_from = skier, values_from = c(outcome, Source1, Source2, bias))
+
+sim_wide_weighted <- sim_wide_weighted %>% na.omit()
+
+# Create the data
+dataWeightedBayes <- list(
+  N = nrow(sim_wide_weighted),
+  S = nskiers,
+  outcome = as.matrix(sim_wide_weighted[,2:11]),
+  Source1 = as.matrix(sim_wide_weighted[,12:21]),
+  Source2 = as.matrix(sim_wide_weighted[,22:31]),
+  bias = as.matrix(sim_wide_weighted[,32:41])
+)
+
+# feed R the stan model
+file <- file.path("weightedBayes.stan")
+mod_WeightedBayes <- cmdstan_model(file, cpp_options = list(stan_threads = TRUE),
+                     stanc_options = list("O1"))
+# create samples from the model
+samples_weighted <- mod_WeightedBayes$sample(
+  data = dataWeightedBayes,
+  seed = 123,
+  chains = 2,
+  parallel_chains = 2,
+  threads_per_chain = 2,
+  iter_warmup = 1500,
+  iter_sampling = 3000,
+  refresh = 500,
+  max_treedepth = 10
+)
+
+# get the resulting data frame
+draws_df_weighted <- as_draws_df(samples_weighted$draws())
+```
+
+```{r}
+# chains mixing plot
+p1b <- ggplot(draws_df_weighted, aes(.iteration, `bias[1]`, group = .chain, color = .chain)) +
+  geom_line(alpha = 0.5) +
+  theme_classic()
+
+p1w1 <- ggplot(draws_df_weighted, aes(.iteration, w1, group = .chain, color = .chain)) +
+  geom_line(alpha = 0.5) +
+  theme_classic()
+
+# bias plot
+b1 <- ggplot(draws_df_weighted) +
+  geom_density(aes(`bias_posterior[1]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`bias_prior[1]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 1")
+
+
+# bias plot
+w1 <- ggplot(draws_df_weighted) +
+  geom_density(aes(`w1[1]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`w1_prior[1]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 1")
+
+# bias plot
+w2 <- ggplot(draws_df_weighted) +
+  geom_density(aes(`w2[1]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`w2_prior[1]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 1")
+
+w1+w2
+```
+
+```{r}
+# bias plot
+w11 <- ggplot(draws_df_weighted) +
+  geom_density(aes(`w1[1]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`w1_prior[1]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 1")
+
+# bias plot
+w12 <- ggplot(draws_df_weighted) +
+  geom_density(aes(`w1[2]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`w1_prior[2]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 1")
+
+# bias plot
+w13 <- ggplot(draws_df_weighted) +
+  geom_density(aes(`w1[3]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`w1_prior[3]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 1")
+
+# bias plot
+w14 <- ggplot(draws_df_weighted) +
+  geom_density(aes(`w1[4]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`w1_prior[4]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 1")
+
+# bias plot
+w15 <- ggplot(draws_df_weighted) +
+  geom_density(aes(`w1[5]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`w1_prior[5]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 1")
+
+# bias plot
+w16 <- ggplot(draws_df_weighted) +
+  geom_density(aes(`w1[6]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`w1_prior[6]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 1")
+
+# bias plot
+w17 <- ggplot(draws_df_weighted) +
+  geom_density(aes(`w1[7]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`w1_prior[7]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 1")
+
+# bias plot
+w18 <- ggplot(draws_df_weighted) +
+  geom_density(aes(`w1[8]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`w1_prior[8]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 1")
+
+# bias plot
+w19 <- ggplot(draws_df_weighted) +
+  geom_density(aes(`w1[9]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`w1_prior[9]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 1")
+
+# bias plot
+w110 <- ggplot(draws_df_weighted) +
+  geom_density(aes(`w1[10]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`w1_prior[10]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 1")
+
+w11+w12+w13+w14+w15+w16+w17+w18+w19+w110
+```
+
+```{r}
+parameter_recovery_dfb <- NULL  
+
+for (biasLvl in unique(db$bias)){
+ 
+  dataWeightedBayesParam <- db %>% subset(
+      bias == biasLvl  
+    )
+  
+  # Create the data
+samples_w <- mod_WeightedBayes$sample( 
+  data = list(
+  N = nrow(dataWeightedBayesParam),
+  S = 1,
+  outcome = as.matrix(dataWeightedBayesParam$outcome),
+  Source1 = as.matrix(dataWeightedBayesParam$Source1),
+  Source2 = as.matrix(dataWeightedBayesParam$Source2)
+),
+
+  seed = 123,
+  chains = 2,
+  parallel_chains = 2,
+  threads_per_chain = 2,
+  iter_warmup = 1500,
+  iter_sampling = 3000,
+  refresh = 0,
+  max_treedepth = 10,
+  adapt_delta = 0.99
+      )
+   
+  draws_df_param_recov_b <- as_draws_df(samples_w$draws()) 
+  temp_paramb <- tibble(
+                   biasEstScaled = inv_logit_scaled(draws_df_param_recov_b$`bias[1]`), 
+                   biasTrue = biasLvl,
+                   biasEst = draws_df_param_recov_b$`bias[1]`
+
+                   )
+    
+    
+    if (exists("parameter_recovery_dfb")) {parameter_recovery_dfb <- rbind(parameter_recovery_dfb, temp_paramb)} else {parameter_recovery_dfb <- temp_paramb}
+    
+  }
+```
+
+```{r}
+# parameter recovery for weight 1
+
+parameter_recovery_dfw1 <- NULL  
+
+for (weightLvl1 in unique(db$w1)) {
+ 
+  dataWeightedBayesParam <- db %>% subset(
+      w1 == weightLvl1
+    )
+  
+  # Create the data
+samples_w <- mod_WeightedBayes$sample( 
+  data = list(
+  N = nrow(dataWeightedBayesParam),
+  S = 1,
+  outcome = as.matrix(dataWeightedBayesParam$outcome),
+  Source1 = as.matrix(dataWeightedBayesParam$Source1),
+  Source2 = as.matrix(dataWeightedBayesParam$Source2)
+),
+
+  seed = 123,
+  chains = 2,
+  parallel_chains = 2,
+  threads_per_chain = 2,
+  iter_warmup = 1500,
+  iter_sampling = 3000,
+  refresh = 0,
+  max_treedepth = 10,
+  adapt_delta = 0.99
+      )
+   
+  draws_df_param_recov_w1 <- as_draws_df(samples_w$draws()) 
+  temp_paramw1 <- tibble(
+                   w1EstScaled = inv_logit_scaled(draws_df_param_recov_w1$`w1[1]`), 
+                   w1True = weightLvl1, 
+                   w1Est = draws_df_param_recov_w1$`w1[1]`
+                   )
+    
+    
+    if (exists("parameter_recovery_dfw1")) {parameter_recovery_dfw1 <- rbind(parameter_recovery_dfw1, temp_paramw1)} else {parameter_recovery_dfw1 <- temp_paramw1}
+    
+  }
+  }
+}
+```
+
+```{r}
+parameter_recovery_dfw2 <- NULL  
+
+  for (weightLvl2 in unique(db$w2)){
+ 
+  
+  dataWeightedBayesParam <- db %>% subset(
+      w2 == weightLvl2 
+    )
+  
+  # Create the data
+samples_w <- mod_WeightedBayes$sample( 
+  data = list(
+  N = nrow(dataWeightedBayesParam),
+  S = 1,
+  outcome = as.matrix(dataWeightedBayesParam$outcome),
+  Source1 = as.matrix(dataWeightedBayesParam$Source1),
+  Source2 = as.matrix(dataWeightedBayesParam$Source2),
+  bias = as.matrix(dataWeightedBayesParam$bias)
+),
+
+  seed = 123,
+  chains = 2,
+  parallel_chains = 2,
+  threads_per_chain = 2,
+  iter_warmup = 1500,
+  iter_sampling = 3000,
+  refresh = 0,
+  max_treedepth = 10,
+  adapt_delta = 0.99
+      )
+   
+  draws_df_param_recov_w2 <- as_draws_df(samples_w$draws()) 
+  temp_paramw2 <- tibble(
+                   w2EstScaled = inv_logit_scaled(draws_df_param_recov_w2$`w2[1]`), 
+                   w2True = weightLvl2, 
+                   w2Est = draws_df_param_recov_w2$`w2[1]`
+                   )
+    
+    
+    if (exists("parameter_recovery_dfw2")) {parameter_recovery_dfw2 <- rbind(parameter_recovery_dfw2, temp_paramw2)} else {parameter_recovery_dfw2 <- temp_paramw2}
+    
+  }
+  
+```
+
+
+```{r}
+ggplot(parameter_recovery_df, aes(w1True, w1Est)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  theme_classic()  
+
+ggplot(parameter_recovery_df, aes(w2True, w2Est)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  theme_classic()  
+
+ggplot(parameter_recovery_dfb, aes(biasTrue, biasEstScaled)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  theme_classic()  
+  
+```
+
+

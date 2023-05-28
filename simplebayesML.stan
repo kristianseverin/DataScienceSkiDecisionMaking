@@ -28,8 +28,15 @@ parameters {
 transformed parameters{
   vector[S] biasC;
   vector[S] bias;
+  array[N, S] real a;  // closely mimic the simulation. assessment for skier S on run N
   biasC = biasSD * to_vector(z_bias);
   bias = biasM + biasC;
+  
+  for (n in 1:N){ 
+  for (s in 1:S){
+  a[n,s] = round(inv_logit((bias[s] + (0.5*l_Source1[n,s]) + (0.5*l_Source2[n,s])))*11);  // use the same approach as the data was simulated with
+  }
+  }
 }
 
 
@@ -55,8 +62,9 @@ generated quantities{
   array[S] real bias_posterior;
   
   for (s in 1:S) {
-    bias_prior[s] = inv_logit(normal_rng(0, 1));
-    bias_posterior[s] = inv_logit(bias[s]);
+    bias_prior[s] = inv_logit(normal_rng(0, 1*logit(0.7)));
+    bias_posterior[s] = inv_logit(bias[s]*logit(0.7));
+    
     
     for (n in 1:N) {
    

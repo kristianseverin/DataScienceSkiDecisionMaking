@@ -36,6 +36,7 @@ parameter_recovery_df <- NULL
    biasEstScaled1 = inv_logit_scaled(draws_df_param_recov$`bias[1]`), 
    biasTrue1 = biasLvl, 
    biasEst1 = draws_df_param_recov$`bias[1]`,
+   biasPost = draws_df_param_recov$`bias_posterior[1]`,
 
     
     prior_mean = prior_mean,

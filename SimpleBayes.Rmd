@@ -27,6 +27,7 @@ source("SimpleBayes_f.R")  # get self-written simplebayes function from source
 source("SimulatingData_f.R")  # get self-written data-simulating function from source
 source("sim_d_and_fit_f.R")  # get self-written function that fits different priors to the model 
 source("parameter_recovery_f.R")  # get self-written function that recovers parameters
+source("simulating_data_random_f.R")
 ```
 
 Simulating data
@@ -42,6 +43,8 @@ accumulatedTerrainCond <- c(0,1,2,3,4)
 # use self-written function to get simulated data
 sim_df <- simulating_skiing(nskiers,ntrials, bias)
 
+
+
 ```
 
 ```{r}
@@ -53,11 +56,12 @@ sim_df$Source2 <- ifelse(sim_df$Source2 == 0, 0.01,
                   ifelse(sim_df$Source2 == 1, 0.99, sim_df$Source2))  # i.e., hardcode 0 to be 0.01 and 1 to be 0.99
 ```
 
+
 ```{r}
 # prior sensitivty check data
 dataSimpleBayesSens <- list(
   N = nrow(sim_df),
-  outcome = sim_df$outcome,
+  assessment = sim_df$outcome,
   Source1 = sim_df$Source1,
   Source2 = sim_df$Source2
 )
@@ -92,14 +96,30 @@ ggplot(draws_df_sens) +
   ylab("Posterior Density") +
   theme_classic()
 
+Prior_predictive_checks_p <- 
 ggplot(draws_df_sens) +
   geom_histogram(aes(`prior_preds`), color = "purple", fill = "#CC66FF", alpha = 0.2) +
+    annotate("text",  x = 200, y = 600, label = "Non-Adjusted Prior" , hjust = 0)+
   geom_histogram(aes(`prior_preds5`), color = "yellow", fill = "lightyellow", alpha = 0.2) +
+    annotate("text",  x = 3200, y = 5000, label = "*0.5-Adjusted Prior" , hjust = 0)+
   geom_histogram(aes(`prior_preds7`), color = "green", fill = "lightgreen", alpha = 0.2) +
+    annotate("text",  x = 3300, y = 1800, label = "*0.7-Adjusted Prior" , hjust = 0)+
   geom_histogram(aes(`prior_preds9`), color = "blue", fill = "lightblue", alpha = 0.2) +
-  xlab("Predicted skied runs out of 10000") +
+    annotate("text",  x = 4000, y = 1100, label = "*0.9-Adjusted Prior" , hjust = 0)+
+  xlab("Predicted skied runs out of 6000") +
   ylab("Posterior Density") +
   theme_classic()
+
+ggplot(draws_df_sens) +
+  geom_histogram(aes(`posterior_preds`), color = "purple", fill = "#CC66FF", alpha = 0.2) +
+  geom_histogram(aes(`post_preds5`), color = "yellow", fill = "lightyellow", alpha = 0.2) +
+  geom_histogram(aes(`post_preds7`), color = "green", fill = "lightgreen", alpha = 0.2) +
+  geom_histogram(aes(`post_preds9`), color = "blue", fill = "lightblue", alpha = 0.2) +
+  xlab("Predicted skied runs out of 6000") +
+  ylab("Posterior Density") +
+  theme_classic()
+
+Prior_predictive_checks_p
 ```
 
 
@@ -122,7 +142,7 @@ dataSimpleBayes <- list(
 )
 
 # feed R the stan model
-file <- file.path("simplebayesML.stan")
+file <- file.path("simplebayesMLs.stan")
 mod_simpleBayes <- cmdstan_model(file, cpp_options = list(stan_threads = TRUE),
                      stanc_options = list("O1"))
 # create samples from the model
@@ -134,7 +154,8 @@ samples_simple <- mod_simpleBayes$sample(
   threads_per_chain = 2,
   iter_warmup = 1500,
   iter_sampling = 3000,
-  refresh = 500
+  refresh = 500,
+  max_treedepth = 10
 )
 
 # get the resulting data frame
@@ -184,8 +205,8 @@ p10 <- ggplot(draws_df, aes(.iteration, `bias[10]`, group = .chain, color = .cha
   geom_line(alpha = 0.5) +
   theme_classic()
 
-p_all <- (p1 + p2) + (p3 + p4) + (p5 + 
-  p6) + (p7 + p8) + (p9 + p10) + plot_layout(nrow=5, ncol = 2)
+p_all <- (p1 + p2 + p3 + p4 + p5 + 
+  p6 +p7 + p8 + p9 + p10) + plot_annotation(title = "Mixing of Monte Carlo Chains for the Bias Parameter for all 10 Skiers")
 
 p_all
 
@@ -202,7 +223,7 @@ p_z
 
 ```{r}
 # bias plot
-ggplot(draws_df) +
+b1 <- ggplot(draws_df) +
   geom_density(aes(`bias_posterior[1]`), alpha = 0.6, fill = "lightblue") +
     annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
   geom_density(aes(`bias_prior[1]`), alpha = 0.6, fill = "pink") +
@@ -210,13 +231,14 @@ ggplot(draws_df) +
   xlab("Bias")+
   ylab("Estimate Densitites")+
   theme_bw()+
-  geom_vline(xintercept = sim_df$bias[1], linetype = "dashed", size = 1.5) +
+  geom_vline(xintercept = mean(sim_df$bias), linetype = "dashed", size = 1.5) +
     annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
-  geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 38, ymax = 48), 
-            fill = "white", color = "black", alpha = 0)
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 1")
 
 # bias plot
-ggplot(draws_df) +
+b2 <- ggplot(draws_df) +
   geom_density(aes(`bias_posterior[2]`), alpha = 0.6, fill = "lightblue") +
     annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
   geom_density(aes(`bias_prior[2]`), alpha = 0.6, fill = "pink") +
@@ -224,13 +246,14 @@ ggplot(draws_df) +
   xlab("Bias")+
   ylab("Estimate Densitites")+
   theme_bw()+
-  geom_vline(xintercept = sim_df$bias[1], linetype = "dashed", size = 1.5) +
+  geom_vline(xintercept = mean(sim_df$bias), linetype = "dashed", size = 1.5) +
     annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
-  geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 38, ymax = 48), 
-            fill = "white", color = "black", alpha = 0)
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 2")
 
 # bias plot
-ggplot(draws_df) +
+b3 <- ggplot(draws_df) +
   geom_density(aes(`bias_posterior[3]`), alpha = 0.6, fill = "lightblue") +
     annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
   geom_density(aes(`bias_prior[3]`), alpha = 0.6, fill = "pink") +
@@ -238,72 +261,194 @@ ggplot(draws_df) +
   xlab("Bias")+
   ylab("Estimate Densitites")+
   theme_bw()+
-  geom_vline(xintercept = sim_df$bias[1], linetype = "dashed", size = 1.5) +
+  geom_vline(xintercept = mean(sim_df$bias), linetype = "dashed", size = 1.5) +
     annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
-  geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 38, ymax = 48), 
-            fill = "white", color = "black", alpha = 0)
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 3")
+
+# bias plot
+b4 <- ggplot(draws_df) +
+  geom_density(aes(`bias_posterior[4]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`bias_prior[4]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(sim_df$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 4")
+
+# bias plot
+b5 <- ggplot(draws_df) +
+  geom_density(aes(`bias_posterior[5]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`bias_prior[5]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(sim_df$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 5")
+
+# bias plot
+b6 <- ggplot(draws_df) +
+  geom_density(aes(`bias_posterior[6]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`bias_prior[6]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(sim_df$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 6")
+
+# bias plot
+b7 <- ggplot(draws_df) +
+  geom_density(aes(`bias_posterior[7]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`bias_prior[7]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(sim_df$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 7")
+
+# bias plot
+b8 <- ggplot(draws_df) +
+  geom_density(aes(`bias_posterior[8]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`bias_prior[8]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(sim_df$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 8")
+
+# bias plot
+b9 <- ggplot(draws_df) +
+  geom_density(aes(`bias_posterior[9]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`bias_prior[9]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(sim_df$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 9")
+
+# bias plot
+b10 <- ggplot(draws_df) +
+  geom_density(aes(`bias_posterior[10]`), alpha = 0.6, fill = "lightblue") +
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
+  geom_density(aes(`bias_prior[10]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(sim_df$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="True Bias", hjust = 0)+
+  geom_rect(aes(xmin = 0, xmax = 0.61, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Simulated Skier 10")
+
+pb_all <- b1+b2+b3+b4+b5+b6+b7+b8+b9+b10+plot_annotation(title = "Prior Posterior Update Checks for the Simulated Skiers", 
+                                                         theme = theme(plot.title = element_text(size = 20, hjust = 0.5)))
+
+pb_all
 
 ```
 
 
 ```{r}
 # use all cores on the computer
-plan(multisession, workers = 4)
+#plan(multisession, workers = 4)
 
 #sim_d_and_fit_parameter_recovery <- function(prior_mean, prior_sd) {
 
 # parameter recovery 
 parameter_recovery_df <- NULL  
 
-for (biasLvl in unique(sim_wide$bias_4)) {
+for (biasLvl in unique(sim_wide$bias_1)) {
+ 
   
-  dataSimpleBayesParam <- sim_wide %>% filter(
-      bias_4 == biasLvl
+  dataSimpleBayesParam <- sim_wide %>% subset(
+      bias_1 == biasLvl 
+    
+
     )
   
   samples <- mod_simpleBayes$sample(
       data = list(
         N = 100,
-        S = nskiers,
-        outcome = as.matrix(dataSimpleBayesParam[,2:11])[1:100,],
-        Source1 = as.matrix(sim_wide[,12:21])[1:100,],
-        Source2 = as.matrix(sim_wide[,22:31])[1:100,]
+        S = 1,
+        outcome = as.matrix(dataSimpleBayesParam$outcome_2),
+        Source1 = as.matrix(dataSimpleBayesParam$Source1_2),
+        Source2 = as.matrix(dataSimpleBayesParam$Source2_2)
       ),
-      seed = 123,
-      chains = 1,
-      parallel_chains = 1,
-      threads_per_chain = 1,
-      iter_warmup = 1000,
-      iter_sampling = 2000,
-      refresh = 0,
-      max_treedepth = 20,
-      adapt_delta = 0.99,
+  seed = 123,
+  chains = 2,
+  parallel_chains = 2,
+  threads_per_chain = 2,
+  iter_warmup = 1500,
+  iter_sampling = 3000,
+  refresh = 0,
+  max_treedepth = 10,
+  adapt_delta = 0.99
       )
    
   draws_df_param_recov <- as_draws_df(samples$draws()) 
-  temp_param <- tibble(biasEstScaled = inv_logit_scaled(draws_df_param_recov$`bias[4]`), 
+  temp_param <- tibble(biasEstScaled = inv_logit_scaled(draws_df_param_recov$`bias[1]`), 
                    biasTrue = biasLvl, 
-                   biasEst = draws_df_param_recov$`bias[4]`)
+                   biasEst = draws_df_param_recov$`bias[1]`,
+                   biasPost = draws_df_param_recov$`bias_posterior[1]`)
     
     
     if (exists("parameter_recovery_df")) {parameter_recovery_df <- rbind(parameter_recovery_df, temp_param)} else {parameter_recovery_df <- temp_param}
     
   }
-  
+
 #return(parameter_recovery_df)
 
 #}
-plan(multisession, workers = 4)
-recovery_df_parameter_recovery <- future_pmap_dfr(priors, parameter_recovery, .options = furrr_options(seed = TRUE))
+#plan(multisession, workers = 4)
+#recovery_df_parameter_recovery <- future_pmap_dfr(priors, parameter_recovery, .options = furrr_options(seed = TRUE))
 ```
+
 
 ```{r}
 # reovery plot
-ggplot(recovery_df_parameter_recovery, aes(biasTrue1, biasEstScaled1)) +
+ggplot(recovery_df_parameter_recovery, aes(biasPost, biasEstScaled1)) +
   geom_point(alpha = 0.1) +
-  facet_wrap(~prior_sd)
+  facet_wrap(~prior_sd)+
   geom_smooth() +
   theme_classic()
+  
+ggplot(parameter_recovery_df, aes(biasTrue, biasEst)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth() +
+  theme_classic()  
+  
 ```
 
 
@@ -373,10 +518,23 @@ recovery_df <- future_pmap_dfr(priors, sim_d_and_fit, .options = furrr_options(s
 ```{r}
 # prior sensitivity
 ggplot(recovery_df, aes(prior_mean, bias_posterior1)) +
+  xlab("Prior Mean")+
+  ylab("Bias Posterior")+
   geom_point(alpha = 0.1) +
   geom_hline(yintercept = 0.8, color = "red") +
   geom_smooth() +
-  facet_wrap(.~prior_sd) +
+  facet_wrap(.~prior_sd, labeller = labeller(prior_sd = 
+    c("0.1" = "prior standard deviation: 0.1",
+      "0.2" = "prior standard deviation: 0.2",
+      "0.3" = "prior standard deviation: 0.3",
+      "0.4" = "prior standard deviation: 0.4",
+      "0.5" = "prior standard deviation: 0.5",
+      "0.6" = "prior standard deviation: 0.6",
+      "0.7" = "prior standard deviation: 0.7",
+      "0.8" = "prior standard deviation: 0.8",
+      "0.9" = "prior standard deviation: 0.9",
+      "1" = "prior standard deviation: 1"
+      )))+
   theme_classic()
 
 ggplot(recovery_df, aes(prior_mean, bias_posterior2)) +
@@ -553,13 +711,14 @@ p1Dre
 # bias plot
 Dre <- ggplot(draws_df_ski_Dre) +
   geom_density(aes(`bias_posterior[1]`), alpha = 0.6, fill = "lightblue") +
+  xlim(0,1)+
     annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
   geom_density(aes(`bias_prior[1]`), alpha = 0.6, fill = "pink") +
     annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
   xlab("Bias")+
   ylab("Estimate Densitites")+
   theme_bw()+
-  geom_vline(xintercept = 0.77, linetype = "dashed", size = 1.5) +
+  geom_vline(xintercept = mean(sim_df$bias), linetype = "dashed", size = 1.5) +
     annotate("text", x = 0.01, y = 40,  label="Simulated Bias", hjust = 0)+
   geom_vline(xintercept = summaryDre$q5[35], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
   geom_vline(xintercept = summaryDre$q95[35], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
@@ -570,21 +729,26 @@ Dre <- ggplot(draws_df_ski_Dre) +
 # bias plot
 Joe <- ggplot(draws_df_ski_Joe) +
   geom_density(aes(`bias_posterior[1]`), alpha = 0.6, fill = "lightblue") +
+  xlim(0,1)+
     annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution Bias" , hjust = 0)+
   geom_density(aes(`bias_prior[1]`), alpha = 0.6, fill = "pink") +
     annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution Bias", hjust =0)+
+  geom_density(aes(`bias[1]`))+
   xlab("Bias")+
   ylab("Estimate Densitites")+
   theme_bw()+
-  geom_vline(xintercept = 0.77, linetype = "dashed", size = 1.5) +
+  geom_vline(xintercept = mean(sim_df$bias), linetype = "dashed", size = 1.5) +
     annotate("text", x = 0.01, y = 40,  label="Simulated Bias", hjust = 0)+
   geom_vline(xintercept = summaryJoe$q5[23], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
   geom_vline(xintercept = summaryJoe$q95[23], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
   geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 38, ymax = 48), 
             fill = "white", color = "black", alpha = 0)
 
-Dre+Joe
+(Dre|Joe) + plot_annotation(title = "Prior Posterior Updates for Empirical Data", tag_levels = c("A", "B"), theme = theme(plot.title = element_text(size = 30, hjust = 0.5)))
 
+```
+```{r}
+summaryDre
 ```
 
 ```{r}
