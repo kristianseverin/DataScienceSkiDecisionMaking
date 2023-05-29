@@ -69,13 +69,16 @@ generated quantities{
   
   vector[S] w1_prior;
   vector[S] w2_prior;
+  vector[S] w1_posterior;
+  vector[S] w2_posterior;
   
   for (s in 1:S) {
     bias_prior[s] = inv_logit(normal_rng(0, 1*logit(0.7)));
     bias_posterior[s] = inv_logit(bias[s]*logit(0.7));
     w1_prior[s] = normal_rng(0.5, .2);
     w2_prior[s] = normal_rng(0.5, .2);
-    
+    w1_posterior[s] = inv_logit(w1[s]);
+    w2_posterior[s] = inv_logit(w2[s]);
     
     for (n in 1:N) {
    

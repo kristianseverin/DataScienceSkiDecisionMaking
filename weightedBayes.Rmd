@@ -20,7 +20,8 @@ pacman::p_load(
   purrr, 
   furrr,
   bayesplot,
-  drc
+  drc,
+  ggpubr
   )
 
 source("weightedBayes_f.R")
@@ -97,6 +98,156 @@ samples_weighted <- mod_WeightedBayes$sample(
 draws_df_weighted <- as_draws_df(samples_weighted$draws())
 ```
 
+This chunk has all the prior posterior update plots for bias
+```{r}
+# bias plot
+b1w <- ggplot(draws_df_weighted) +
+  geom_density(aes(`bias_posterior[1]`), alpha = 0.6, fill = "lightblue") +
+  geom_density(aes(`bias_prior[1]`), alpha = 0.6, fill = "pink") +
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = median(db$bias), linetype = "dashed", size = 1.5) +
+  ggtitle("Simulated Skier 1")
+
+# bias plot
+b2w <- ggplot(draws_df_weighted) +
+  geom_density(aes(`bias_posterior[2]`), alpha = 0.6, fill = "lightblue") +
+  geom_density(aes(`bias_prior[2]`), alpha = 0.6, fill = "pink") +
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = median(db$bias), linetype = "dashed", size = 1.5) +
+  ggtitle("Simulated Skier 2")
+
+# bias plot
+b3w <- ggplot(draws_df_weighted) +
+  geom_density(aes(`bias_posterior[3]`), alpha = 0.6, fill = "lightblue") +
+  geom_density(aes(`bias_prior[3]`), alpha = 0.6, fill = "pink") +
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = median(db$bias), linetype = "dashed", size = 1.5) +
+  ggtitle("Simulated Skier 3")
+
+# bias plot
+b4w <- ggplot(draws_df_weighted) +
+  geom_density(aes(`bias_posterior[4]`), alpha = 0.6, fill = "lightblue") +
+  geom_density(aes(`bias_prior[4]`), alpha = 0.6, fill = "pink") +
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = median(db$bias), linetype = "dashed", size = 1.5) +
+  ggtitle("Simulated Skier 4")
+
+# bias plot
+b5w <- ggplot(draws_df_weighted) +
+  geom_density(aes(`bias_posterior[5]`), alpha = 0.6, fill = "lightblue") +
+  geom_density(aes(`bias_prior[5]`), alpha = 0.6, fill = "pink") +
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = median(db$bias), linetype = "dashed", size = 1.5) +
+  ggtitle("Simulated Skier 5")
+
+# bias plot
+b6w <- ggplot(draws_df_weighted) +
+  geom_density(aes(`bias_posterior[6]`), alpha = 0.6, fill = "lightblue") +
+  geom_density(aes(`bias_prior[6]`), alpha = 0.6, fill = "pink") +
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = median(db$bias), linetype = "dashed", size = 1.5) +
+  ggtitle("Simulated Skier 6")
+
+# bias plot
+b7w <- ggplot(draws_df_weighted) +
+  geom_density(aes(`bias_posterior[7]`), alpha = 0.6, fill = "lightblue") +
+  geom_density(aes(`bias_prior[7]`), alpha = 0.6, fill = "pink") +
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = median(db$bias), linetype = "dashed", size = 1.5) +
+  ggtitle("Simulated Skier 7")
+
+# bias plot
+b8w <- ggplot(draws_df_weighted) +
+  geom_density(aes(`bias_posterior[8]`), alpha = 0.6, fill = "lightblue") +
+  geom_density(aes(`bias_prior[8]`), alpha = 0.6, fill = "pink") +
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = median(db$bias), linetype = "dashed", size = 1.5) +
+  ggtitle("Simulated Skier 8")
+
+# bias plot
+b9w <- ggplot(draws_df_weighted) +
+  geom_density(aes(`bias_posterior[9]`), alpha = 0.6, fill = "lightblue") +
+  geom_density(aes(`bias_prior[9]`), alpha = 0.6, fill = "pink") +
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = median(db$bias), linetype = "dashed", size = 1.5) +
+  ggtitle("Simulated Skier 9")
+
+# bias plot
+b10w <- ggplot(draws_df_weighted) +
+  geom_density(aes(`bias_posterior[10]`), alpha = 0.6, fill = "lightblue") +
+  geom_density(aes(`bias_prior[10]`), alpha = 0.6, fill = "pink") +
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = median(db$bias), linetype = "dashed", size = 1.5) +
+  ggtitle("Simulated Skier 10")
+
+pbw_all <- b1w+b2w+b3w+b4w+b5w+b6w+b7w+b8w+b9w+b10w+plot_annotation(title = "Prior Posterior Update Checks for the Simulated Skiers", subtitle = "β Parameter",
+                                                         theme = theme(plot.title = element_text(size = 20, hjust = 0.5),plot.subtitle = element_text(size=15, hjust = 0.5)))
+
+pbw_all
+```
+
+
+```{r}
+# bias plot
+b1w <- ggplot(draws_df_weighted) +
+  geom_density(aes(`bias_posterior[1]`), alpha = 0.6, fill = "lightblue") +
+  geom_density(aes(`bias_prior[1]`), alpha = 0.6, fill = "pink") +
+  xlab("Bias")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = median(db$bias), linetype = "dashed", size = 1.5) +
+  ggtitle("Simulated Skier 1")
+
+b2w1 <- ggplot(draws_df_weighted) +
+  geom_density(aes(`w1_posterior[1]`), alpha = 0.6, fill = "lightblue") +
+  geom_density(aes(`w1_prior[1]`), alpha = 0.6, fill = "pink") +
+  xlab("ω1")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = median(db$w1), linetype = "dashed", size = 1.5) +
+  ggtitle("Simulated Skier 1")
+
+b2w2 <- ggplot(draws_df_weighted) +
+  geom_density(aes(`w2_posterior[1]`), alpha = 0.6, fill = "lightblue") +
+  geom_density(aes(`w2_prior[1]`), alpha = 0.6, fill = "pink") +
+  xlab("ω1")+
+  ylab("Estimate Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = median(db$w2), linetype = "dashed", size = 1.5) +
+  ggtitle("Simulated Skier 1")
+
+b1w
+b2w1
+b2w2
+```
+
+
+```{r}
+samples_weighted$loo()
+```
+
+
+
 ```{r}
 # chains mixing plot
 p1b <- ggplot(draws_df_weighted, aes(.iteration, `bias[1]`, group = .chain, color = .chain)) +
@@ -155,6 +306,21 @@ w2 <- ggplot(draws_df_weighted) +
 
 w1+w2
 ```
+
+```{r}
+ggplot(draws_df_weighted) +
+  geom_point(aes(`bias[2]`, `w2[2]`), alpha = 0.3) +
+  theme_bw()
+
+ggplot(draws_df_weighted) +
+  geom_point(aes(`bias[2]`, `w1[2]`), alpha = 0.3) +
+  theme_bw()
+
+ggplot(draws_df_weighted) +
+  geom_point(aes(`w1[2]`, `w2[2]`), alpha = 0.3) +
+  theme_bw()
+```
+
 
 ```{r}
 # bias plot
@@ -311,7 +477,7 @@ w11+w12+w13+w14+w15+w16+w17+w18+w19+w110
 ```
 
 ```{r}
-parameter_recovery_dfb <- NULL  
+parameter_recovery_dfbw <- NULL  
 
 for (biasLvl in unique(db$bias)){
  
@@ -349,7 +515,7 @@ samples_w <- mod_WeightedBayes$sample(
                    )
     
     
-    if (exists("parameter_recovery_dfb")) {parameter_recovery_dfb <- rbind(parameter_recovery_dfb, temp_paramb)} else {parameter_recovery_dfb <- temp_paramb}
+    if (exists("parameter_recovery_dfbw")) {parameter_recovery_dfbw <- rbind(parameter_recovery_dfbw, temp_paramb)} else {parameter_recovery_dfbw <- temp_paramb}
     
   }
 ```
@@ -397,8 +563,7 @@ samples_w <- mod_WeightedBayes$sample(
     if (exists("parameter_recovery_dfw1")) {parameter_recovery_dfw1 <- rbind(parameter_recovery_dfw1, temp_paramw1)} else {parameter_recovery_dfw1 <- temp_paramw1}
     
   }
-  }
-}
+
 ```
 
 ```{r}
@@ -449,21 +614,283 @@ samples_w <- mod_WeightedBayes$sample(
 
 
 ```{r}
-ggplot(parameter_recovery_df, aes(w1True, w1Est)) +
+w1 <- ggplot(parameter_recovery_dfw1, aes(w1True, w1Est)) +
   geom_point(alpha = 0.1) +
-  geom_smooth() +
+  geom_smooth(method = "lm", color = "purple") +
+  xlab("True ω1")+
+  ylab("Estimated ω1")+
+  ggtitle("Weight1 from the Weighted Bayes Model")+
   theme_classic()  
 
-ggplot(parameter_recovery_df, aes(w2True, w2Est)) +
+w2 <- ggplot(parameter_recovery_dfw2, aes(w2True, w2Est)) +
   geom_point(alpha = 0.1) +
-  geom_smooth() +
+  geom_smooth(method = "lm", color = "red") +
+  xlab("True ω2")+
+  ylab("Estimated ω2")+
+  ggtitle("Weight2 from the Weighted Bayes Model")+
   theme_classic()  
 
-ggplot(parameter_recovery_dfb, aes(biasTrue, biasEstScaled)) +
+bias <- ggplot(parameter_recovery_dfbw, aes(biasTrue, biasEstScaled)) +
   geom_point(alpha = 0.1) +
-  geom_smooth() +
+  geom_smooth(method = "lm", color = "orange") +
+  xlab("True β")+
+  ylab("Estimated β")+
+  ggtitle("Bias from the Weighted Bayes Model")+
   theme_classic()  
+
+w1 + w2 + bias  + plot_layout(ncol = 1) + plot_annotation(title = "Parameter Recovery Weighted Bayes Model", theme = theme(plot.title = element_text(size = 20, hjust = 0.5)))
+```
+
+
+
+```{r}
+# load empirical data
+skidata <- read_csv("/Users/kristian/Documents/Skole/8. Semester/Data Science/Exam/DataScienceSkiDecisionMaking/skidata.csv")
+
+# get avi and terrain into probability space (/n+1)
+skidata$Source1 <- skidata$AvalancheConditions / 7  # n is 6
+skidata$Source2 <- skidata$TerrainCharacteristics / 5 # n is 4
+
+# get sources within scope for working with log-odds (i.e., avoid 0 and 1)
+skidata$Source1 <- ifelse(skidata$Source1 == 0, 0.01, 
+                  ifelse(skidata$Source1 == 1, 0.99, skidata$Source1))  # i.e., hardcode 0 to be 0.01 and 1 to be 0.99
+
+skidata$Source2 <- ifelse(skidata$Source2 == 0, 0.01, 
+                  ifelse(skidata$Source2 == 1, 0.99, skidata$Source2))  # i.e., hardcode 0 to be 0.01 and 1 to be 0.99
+```
+
+
+```{r}
+# pivot data wider
+sim_wide_ski <- skidata %>% 
+  group_by(id) %>% 
+  subset(select = c(id, outcome, Source1, Source2)) %>%
+  mutate(row = row_number()) %>% 
+  pivot_wider(names_from = id, values_from = c(outcome, Source1, Source2))
+
+dataSimpleBayesSkiDre <- sim_wide_ski %>% 
+  subset(select = c(outcome_2, Source1_2, Source2_2)) %>% 
+  na.omit()
+
+dataSimpleBayesSkiDre <- list(
+  N = nrow(dataSimpleBayesSkiDre),
+  S = 1,
+  outcome = as.matrix(dataSimpleBayesSkiDre[,1]),
+  Source1 = as.matrix(dataSimpleBayesSkiDre[,2]),
+  Source2 = as.matrix(dataSimpleBayesSkiDre[,3])
+)
+
+# feed R the stan model
+file <- file.path("weightedBayes.stan")
+mod_simpleBayesSki <- cmdstan_model(file, cpp_options = list(stan_threads = TRUE),
+                     stanc_options = list("O1"))
+
+   
+# create samples from the model
+samples_simple_w_skiDre <- mod_simpleBayesSki$sample(
+  data = dataSimpleBayesSkiDre,
+  seed = 123,
+  chains = 2,
+  parallel_chains = 2,
+  threads_per_chain = 2,
+  iter_warmup = 1500,
+  iter_sampling = 3000,
+  refresh = 500
+)
+
+
+# get the resulting data frame
+draws_df_ski_Dre <- as_draws_df(samples_simple_w_skiDre$draws())
+```
+
+```{r}
+# Johan
+dataSimpleBayesSkiJoe <- sim_wide_ski %>% 
+  subset(select = c(outcome_1, Source1_1, Source2_1)) %>% 
+  na.omit()
+
+dataSimpleBayesSkiJoe <- list(
+  N = nrow(dataSimpleBayesSkiJoe),
+  S = 1,
+  outcome = as.matrix(dataSimpleBayesSkiJoe[,1]),
+  Source1 = as.matrix(dataSimpleBayesSkiJoe[,2]),
+  Source2 = as.matrix(dataSimpleBayesSkiJoe[,3])
+)
+
+
+# feed R the stan model
+file <- file.path("weightedBayes.stan")
+mod_simpleBayesSki <- cmdstan_model(file, cpp_options = list(stan_threads = TRUE),
+                     stanc_options = list("O1"))
+   
+# create samples from the model
+samples_simple_w_skiJoe <- mod_simpleBayesSki$sample(
+  data = dataSimpleBayesSkiJoe,
+  seed = 123,
+  chains = 2,
+  parallel_chains = 2,
+  threads_per_chain = 2,
+  iter_warmup = 1500,
+  iter_sampling = 3000,
+  refresh = 500
+)
+
+# get the resulting data frame
+draws_df_ski_Joe <- as_draws_df(samples_simple_w_skiJoe$draws())
+```
+
+```{r}
+# basic evaluation
+samples_simple_w_skiJoe$cmdstan_diagnose()
+samples_simple_w_skiDre$cmdstan_diagnose()
+
+# diagnostics
+summaryJoe <- samples_simple_w_skiJoe$summary()
+samples_simple_w_skiJoe$loo()
+
+summaryDre <- samples_simple_w_skiDre$summary()
+samples_simple_w_skiDre$loo()
+
+```
+
+```{r}
+p1wJoe <- ggplot(draws_df_ski_Joe, aes(.iteration, `bias[1]`, group = .chain, color = .chain)) +
+  geom_line(alpha = 0.5) +
+  theme_classic()
+p1wDre <- ggplot(draws_df_ski_Dre, aes(.iteration, `bias[1]`, group = .chain, color = .chain)) +
+  geom_line(alpha = 0.5) +
+  theme_classic()
+p1wJoe
+p1wDre
+```
+
+
+```{r}
+
+# bias Subject A plot
+DreWb <- ggplot(draws_df_ski_Dre) +
+  geom_density(aes(`bias_posterior[1]`), alpha = 0.6, fill = "lightblue") +
+ # xlim(0,1)+
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution β" , hjust = 0)+
+  geom_density(aes(`bias_prior[1]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution β", hjust =0)+
+  xlab("β")+
+  ylab("Estimated β Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="Simulated β", hjust = 0)+
+  geom_vline(xintercept = summaryDre$q5[37], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
+  geom_vline(xintercept = summaryDre$q95[37], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
+  geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Subject A")
+
+
+
+# bias Subject B plot
+JoeWb <- ggplot(draws_df_ski_Joe) +
+  geom_density(aes(`bias_posterior[1]`), alpha = 0.6, fill = "lightblue") +
+ # xlim(0,1)+
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution β" , hjust = 0)+
+  geom_density(aes(`bias_prior[1]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution β", hjust =0)+
+  xlab("β")+
+  ylab("Estimated β Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="Simulated β", hjust = 0)+
+  geom_vline(xintercept = summaryJoe$q5[25], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
+  geom_vline(xintercept = summaryJoe$q95[25], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
+  geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Subject B")
+
+
+# weight 1 subject A plot
+DreW1 <- ggplot(draws_df_ski_Dre) +
+  geom_density(aes(`w1_posterior[1]`), alpha = 0.6, fill = "lightblue") +
+  xlim(0,1)+
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution ω1" , hjust = 0)+
+  geom_density(aes(`w1_prior[1]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution ω1", hjust =0)+
+  xlab("ω1")+
+  ylab("Estimated ω1 Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$w1), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="Simulated ω1", hjust = 0)+
+  geom_vline(xintercept = summaryDre$q5[40], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
+  geom_vline(xintercept = summaryDre$q95[40], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
+  geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Subject A")
+
+
+# weight 1 Subject B plot
+JoeW1 <- ggplot(draws_df_ski_Joe) +
+  geom_density(aes(`w1_posterior[1]`), alpha = 0.6, fill = "lightblue") +
+  xlim(0,1)+
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution ω1" , hjust = 0)+
+  geom_density(aes(`w1_prior[1]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution ω1", hjust =0)+
+  xlab("ω1")+
+  ylab("Estimated ω1 Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$w1), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="Simulated ω1", hjust = 0)+
+  geom_vline(xintercept = summaryJoe$q5[28], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
+  geom_vline(xintercept = summaryJoe$q95[28], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
+  geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Subject B")
   
+
+# weight 2 subject A
+DreW2 <- ggplot(draws_df_ski_Dre) +
+  geom_density(aes(`w2_posterior[1]`), alpha = 0.6, fill = "lightblue") +
+  xlim(0,1)+
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution ω2" , hjust = 0)+
+  geom_density(aes(`w2_prior[1]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution ω2", hjust =0)+
+  xlab("Bias")+
+  ylab("Estimated ω2 Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$w2), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="Simulated ω2", hjust = 0)+
+  geom_vline(xintercept = summaryDre$q5[41], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
+  geom_vline(xintercept = summaryDre$q95[41], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
+  geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Subject A")
+
+
+# weight 2 subject B plot
+JoeW2 <- ggplot(draws_df_ski_Joe) +
+  geom_density(aes(`w2_posterior[1]`), alpha = 0.6, fill = "lightblue") +
+  xlim(0,1)+
+    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution ω2" , hjust = 0)+
+  geom_density(aes(`w2_prior[1]`), alpha = 0.6, fill = "pink") +
+    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution ω2", hjust =0)+
+  xlab("ω2")+
+  ylab("Estimated ω2 Densitites")+
+  theme_bw()+
+  geom_vline(xintercept = mean(db$w2), linetype = "dashed", size = 1.5) +
+    annotate("text", x = 0.01, y = 40,  label="Simulated ω2", hjust = 0)+
+  geom_vline(xintercept = summaryJoe$q5[29], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
+  geom_vline(xintercept = summaryJoe$q95[29], linetype = "dashed", color = "grey", size = 0.5, alpha = 1)+
+  geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 38, ymax = 48), 
+            fill = "white", color = "black", alpha = 0)+
+  ggtitle("Subject B")
+  
+
+weights1Emp <-   (DreW1|JoeW1)
+weights2Emp <- (DreW2| JoeW2)
+biasEmp <- (DreWb|JoeWb)
+
+all_param <- ggarrange(weights1Emp, weights2Emp, biasEmp, ncol = 1, nrow = 3)
+
+annotate_figure(all_param, top = text_grob("Prior Posterior Updates for the Weighted Bayes Parameters", 
+              face = "bold", size = 14))
+
 ```
 
 
