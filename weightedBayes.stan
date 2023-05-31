@@ -52,9 +52,9 @@ model {
   target += normal_lpdf(w2 | 0.5, .2);
   
   for (s in 1:S){
-  target +=  bernoulli_logit_lpmf(outcome[,s] | bias[s] + 
-                                         w1[s] *to_vector(l_Source1[,s]) + 
-                                         w2[s] *to_vector(l_Source2[,s]));
+  target +=  bernoulli_logit_lpmf(outcome[,s] | bias[s] * logit(0.7) + 
+                                        logit(0.7) * w1[s] *to_vector(l_Source1[,s]) + 
+                                        logit(0.7) * w2[s] * to_vector(l_Source2[,s]));
 
   }
 }
@@ -62,6 +62,27 @@ model {
 generated quantities{
   array[S] int prior_preds; // distribution of skiing/non-skiing choices according to the prior
   array[S] int posterior_preds; // distribution of skiing/non-skiing choices according to the posterior
+  
+  array[S] int<lower=0, upper=N> prior_predsb5;
+  array[S] int<lower=0, upper=N> post_predsb5;
+  array[S] int<lower=0, upper=N> prior_predsb7;
+  array[S] int<lower=0, upper=N> post_predsb7;
+  array[S] int<lower=0, upper=N> prior_predsb9;
+  array[S] int<lower=0, upper=N> post_predsb9;
+  
+  array[S] int<lower=0, upper=N> prior_predsw15;
+  array[S] int<lower=0, upper=N> post_predsw15;
+  array[S] int<lower=0, upper=N> prior_predsw17;
+  array[S] int<lower=0, upper=N> post_predsw17;
+  array[S] int<lower=0, upper=N> prior_predsw19;
+  array[S] int<lower=0, upper=N> post_predsw19;
+  
+  array[S] int<lower=0, upper=N> prior_predsw25;
+  array[S] int<lower=0, upper=N> post_predsw25;
+  array[S] int<lower=0, upper=N> prior_predsw27;
+  array[S] int<lower=0, upper=N> post_predsw27;
+  array[S] int<lower=0, upper=N> prior_predsw29;
+  array[S] int<lower=0, upper=N> post_predsw29;
   array[S, N] real log_lik;
   
   array[S] real bias_prior;
@@ -82,11 +103,32 @@ generated quantities{
     
     for (n in 1:N) {
    
-      log_lik[s, n] = bernoulli_logit_lpmf(outcome[n, s] | bias[s] + w1[s]*l_Source1[n, s] + w2[s]*l_Source2[n, s]);
+      log_lik[s, n] = bernoulli_logit_lpmf(outcome[n, s] | bias[s]*logit(0.7) + logit(0.7)*w1[s]*l_Source1[n, s] + logit(0.7)*w2[s]*l_Source2[n, s]);
     }
   }
 for (s in 1:S) {
   prior_preds[s] = binomial_rng(1, bias_prior[s]*logit(0.7));
   posterior_preds[s] = binomial_rng(1, inv_logit(bias[s]*logit(0.7)));
+  
+  prior_predsb5[s] = binomial_rng(N, inv_logit(bias_prior[s] * logit(0.5)));
+  prior_predsb7[s] = binomial_rng(N, inv_logit(bias_prior[s] * logit(0.7)));
+  prior_predsb9[s] = binomial_rng(N, inv_logit(bias_prior[s] * logit(0.9)));
+  post_predsb5[s] = binomial_rng(N, inv_logit(bias[s] * logit(0.5)));
+  post_predsb7[s] = binomial_rng(N, inv_logit(bias[s] * logit(0.7)));
+  post_predsb9[s] = binomial_rng(N, inv_logit(bias[s] * logit(0.9)));
+  
+  prior_predsw15[s] = binomial_rng(N, inv_logit(w1_prior[s] * logit(0.5)));
+  prior_predsw17[s] = binomial_rng(N, inv_logit(w1_prior[s] * logit(0.7)));
+  prior_predsw19[s] = binomial_rng(N, inv_logit(w1_prior[s] * logit(0.9)));
+  post_predsw15[s] = binomial_rng(N, inv_logit(w1[s] * logit(0.5)));
+  post_predsw17[s] = binomial_rng(N, inv_logit(w1[s] * logit(0.7)));
+  post_predsw19[s] = binomial_rng(N, inv_logit(w1[s] * logit(0.9)));
+  
+  prior_predsw25[s] = binomial_rng(N, inv_logit(w2_prior[s] * logit(0.5)));
+  prior_predsw27[s] = binomial_rng(N, inv_logit(w2_prior[s] * logit(0.7)));
+  prior_predsw29[s] = binomial_rng(N, inv_logit(w2_prior[s] * logit(0.9)));
+  post_predsw25[s] = binomial_rng(N, inv_logit(w2[s] * logit(0.5)));
+  post_predsw27[s] = binomial_rng(N, inv_logit(w2[s] * logit(0.7)));
+  post_predsw29[s] = binomial_rng(N, inv_logit(w2[s] * logit(0.9)));
   }
 }

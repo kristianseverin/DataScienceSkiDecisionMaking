@@ -46,7 +46,7 @@ model {
   target += std_normal_lpdf(to_vector(z_bias));
   
   for (s in 1:S){
-  target +=  bernoulli_logit_lpmf(outcome[,s] | bias[s] + 
+  target +=  bernoulli_logit_lpmf(outcome[,s] | bias[s]*logit(0.7) + 
                                           0.5*to_vector(l_Source1[,s]) + 
                                           0.5*to_vector(l_Source2[,s]));
 
@@ -54,25 +54,38 @@ model {
 }
 
 generated quantities{
-  array[S] int prior_preds; // distribution of skiing/non-skiing choices according to the prior
-  array[S] int posterior_preds; // distribution of skiing/non-skiing choices according to the posterior
+  array[S] int<lower=0, upper=N> prior_preds; // distribution of skiing/non-skiing choices according to the prior
+  array[S] int<lower=0, upper=N> posterior_preds; // distribution of skiing/non-skiing choices according to the posterior
+  array[S] int<lower=0, upper=N> prior_preds5;
+  array[S] int<lower=0, upper=N> post_preds5;
+  array[S] int<lower=0, upper=N> prior_preds7;
+  array[S] int<lower=0, upper=N> post_preds7;
+  array[S] int<lower=0, upper=N> prior_preds9;
+  array[S] int<lower=0, upper=N> post_preds9;
   array[S, N] real log_lik;
   
   array[S] real bias_prior;
   array[S] real bias_posterior;
   
+  
   for (s in 1:S) {
-    bias_prior[s] = inv_logit(normal_rng(0, 1*logit(0.7)));
-    bias_posterior[s] = inv_logit(bias[s]*logit(0.7));
+    bias_prior[s] = inv_logit(normal_rng(0, 1));
+    bias_posterior[s] = inv_logit(bias[s]);
     
     
     for (n in 1:N) {
    
-      log_lik[s, n] = bernoulli_logit_lpmf(outcome[n, s] | bias[s] + 0.5*l_Source1[n, s] + 0.5*l_Source2[n, s]);
+      log_lik[s, n] = bernoulli_logit_lpmf(outcome[n, s] | bias[s]*logit(0.7) + 0.5*l_Source1[n, s] + 0.5*l_Source2[n, s]);
     }
   }
 for (s in 1:S) {
-  prior_preds[s] = binomial_rng(1, bias_prior[s]*logit(0.7));
-  posterior_preds[s] = binomial_rng(1, inv_logit(bias[s]*logit(0.7)));
+  prior_preds[s] = binomial_rng(1, bias_prior[s]);
+  posterior_preds[s] = binomial_rng(1, inv_logit(bias[s]));
+  prior_preds5[s] = binomial_rng(N, inv_logit(bias_prior[s] * logit(0.5)));
+  prior_preds7[s] = binomial_rng(N, inv_logit(bias_prior[s] * logit(0.7)));
+  prior_preds9[s] = binomial_rng(N, inv_logit(bias_prior[s] * logit(0.9)));
+  post_preds5[s] = binomial_rng(N, inv_logit(bias[s] * logit(0.5)));
+  post_preds7[s] = binomial_rng(N, inv_logit(bias[s] * logit(0.7)));
+  post_preds9[s] = binomial_rng(N, inv_logit(bias[s] * logit(0.9)));
   }
 }

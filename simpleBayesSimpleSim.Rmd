@@ -24,6 +24,7 @@ pacman::p_load(
   )
 
 source("SimpleBayes_f.R")  # get self-written simplebayes function from source
+source("priorSens_f.R")  # get self-written function for prior sensitivity analysis
 ```
 
 ```{r}
@@ -96,6 +97,102 @@ samples_simpleS <- mod_SimpleBayesS$sample(
 draws_df_simpleS <- as_draws_df(samples_simpleS$draws())
 ```
 
+This chunk has the prior and posterior predictive checks for the bias parameter
+```{r}
+Prior_predictive_checks_p <- 
+ggplot(draws_df_simpleS) +
+  geom_histogram(aes(`prior_preds5[1]`), color = "yellow", fill = "lightyellow", alpha = 0.2) +
+    annotate("text",  x = 340, y = 2100, label = "*0.5-Adjusted Prior" , hjust = 0)+
+  geom_histogram(aes(`prior_preds7[1]`), color = "green", fill = "lightgreen", alpha = 0.2) +
+    annotate("text",  x = 450, y = 900, label = "*0.7-Adjusted Prior" , hjust = 0)+
+  geom_histogram(aes(`prior_preds9[1]`), color = "blue", fill = "lightblue", alpha = 0.2) +
+    annotate("text",  x = 550, y = 600, label = "*0.9-Adjusted Prior" , hjust = 0)+
+  xlab("Predicted skied runs out of 729") +
+  ylab("Posterior Density") +
+  ggtitle("Prior Predictive Checks")+
+  theme_classic()
+
+both_bs5 <- ggplot(draws_df_simpleS) +
+  geom_histogram(aes(`prior_preds5[1]`), color = "lightyellow", fill = "yellow", alpha = 0.3, bins = 90) +
+  geom_histogram(aes(`post_preds5[1]`), color = "#666600", fill = "yellow", alpha = 0.3, bins = 90) +
+  xlab("Predicted skied runs out of 729 trials") +
+  ylab("Posterior Density") +
+  ggtitle("β 0.5 adjusted prior")+
+  theme_classic()
+
+both_bs7 <- ggplot(draws_df_simpleS) +
+  geom_histogram(aes(`prior_preds7[1]`), color = "lightgreen", fill = "green", alpha = 0.3, bins = 90) +
+  geom_histogram(aes(`post_preds7[1]`), color = "darkgreen", fill = "green", alpha = 0.3, bins = 90) +
+  xlab("Predicted skied runs out of 729 trials") +
+  ylab("Posterior Density") +
+  ggtitle("β 0.7 adjusted prior")+
+  theme_classic()
+
+both_bs9 <- ggplot(draws_df_simpleS) +
+  geom_histogram(aes(`prior_preds9[1]`), color = "lightblue", fill = "blue", alpha = 0.3, bins = 90) +
+  geom_histogram(aes(`post_preds9[1]`), color = "darkblue", fill = "blue", alpha = 0.3, bins = 90) +
+  xlab("Predicted skied runs out of 729 trials") +
+  ylab("Posterior Density") +
+  ggtitle("β 0.9 adjusted prior")+
+  theme_classic()
+
+Prior_predictive_checks_p
+
+both_bs5+both_bs7+both_bs9 + plot_annotation(title = "Prior and Posterior Predictive Checks", subtitle = "Simple Bayes Model Parameter")
+```
+
+```{r}
+# adding different priors for bias
+prior_mean <- seq(-3, 3, .5)
+prior_sd <- seq(0.1, 1, 0.1)
+priors <-  expand.grid(prior_mean, prior_sd)
+priors <- tibble(prior_mean = priors$Var1, prior_sd = priors$Var2)
+
+# feed R the stan model with priors
+file <- file.path("sbPriors.stan")
+mod <- cmdstan_model(file, 
+                     cpp_options = list(stan_threads = TRUE),
+                     stanc_options = list("O1"))
+
+# use all cores on the computer
+plan(multisession, workers = 4)
+
+# calling function self-written function that simulates data and fits it by sequences of different priors
+prior_sens_dfS <- future_pmap_dfr(priors, sim_d_and_fit, .options = furrr_options(seed = TRUE))
+```
+
+```{r}
+# prior sensitivity
+ggplot(prior_sens_dfS, aes(prior_mean, bias_posterior1)) +
+  xlab("Prior Mean")+
+  ylab("Bias Posterior")+
+  geom_point(alpha = 0.1) +
+  geom_hline(yintercept = 0.8, color = "red") +
+  geom_smooth() +
+  facet_wrap(.~prior_sd, labeller = labeller(prior_sd = 
+    c("0.1" = "prior standard deviation: 0.1",
+      "0.2" = "prior standard deviation: 0.2",
+      "0.3" = "prior standard deviation: 0.3",
+      "0.4" = "prior standard deviation: 0.4",
+      "0.5" = "prior standard deviation: 0.5",
+      "0.6" = "prior standard deviation: 0.6",
+      "0.7" = "prior standard deviation: 0.7",
+      "0.8" = "prior standard deviation: 0.8",
+      "0.9" = "prior standard deviation: 0.9",
+      "1" = "prior standard deviation: 1"
+      )))+
+  theme_classic()
+
+ggplot(prior_sens_dfS, aes(prior_mean, bias_posterior2)) +
+  geom_point(alpha = 0.1) +
+  geom_hline(yintercept = 0.8, color = "red") +
+  geom_smooth() +
+  facet_wrap(.~prior_sd) +
+  theme_classic()
+```
+
+
+This chunk has the prior posterior update plots for the bias parameter
 ```{r}
 # bias plot
 b1 <- ggplot(draws_df_simpleS) +
@@ -236,8 +333,51 @@ pb_all
 
 ```
 
+This chunk has the chains mixing traceplots for the bias parameter
+```{r}
+# chains mixing plot
+mp1S <- ggplot(draws_df_simpleS, aes(.iteration, `bias[1]`, group = .chain, color = .chain)) +
+  geom_line(alpha = 0.5) +
+  theme_classic()
+mp2S <- ggplot(draws_df_simpleS, aes(.iteration, `bias[2]`, group = .chain, color = .chain)) +
+  geom_line(alpha = 0.5) +
+  theme_classic()
+mp3S <- ggplot(draws_df_simpleS, aes(.iteration, `bias[3]`, group = .chain, color = .chain)) +
+  geom_line(alpha = 0.5) +
+  theme_classic()
+mp4S <- ggplot(draws_df_simpleS, aes(.iteration, `bias[4]`, group = .chain, color = .chain)) +
+  geom_line(alpha = 0.5) +
+  theme_classic()
+mp5S <- ggplot(draws_df_simpleS, aes(.iteration, `bias[5]`, group = .chain, color = .chain)) +
+  geom_line(alpha = 0.5) +
+  theme_classic()
+mp6S <- ggplot(draws_df_simpleS, aes(.iteration, `bias[6]`, group = .chain, color = .chain)) +
+  geom_line(alpha = 0.5) +
+  theme_classic()
+mp7S <- ggplot(draws_df_simpleS, aes(.iteration, `bias[7]`, group = .chain, color = .chain)) +
+  geom_line(alpha = 0.5) +
+  theme_classic()
+mp8S <- ggplot(draws_df_simpleS, aes(.iteration, `bias[8]`, group = .chain, color = .chain)) +
+  geom_line(alpha = 0.5) +
+  theme_classic()
+mp9S <- ggplot(draws_df_simpleS, aes(.iteration, `bias[9]`, group = .chain, color = .chain)) +
+  geom_line(alpha = 0.5) +
+  theme_classic()
+mp10S <- ggplot(draws_df_simpleS, aes(.iteration, `bias[10]`, group = .chain, color = .chain)) +
+  geom_line(alpha = 0.5) +
+  theme_classic()
+
+mix_w_allS <- ggarrange(mp1S, mp2S, mp3S, mp4S, mp5S, mp6S, mp7S, mp8S, mp9S, mp10S)
+
+annotate_figure(mix_w_all, top = text_grob("Chains Mixing Plot Simple Bayes Model for the β Parameter", 
+                face = "bold", size = 14))
+
+mix_w_allS
+```
+
 
 ```{r}
+# leave one out cross-validation information criteria
 samples_simpleS$loo()
 ```
 

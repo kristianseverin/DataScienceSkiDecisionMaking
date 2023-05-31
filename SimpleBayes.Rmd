@@ -142,7 +142,7 @@ dataSimpleBayes <- list(
 )
 
 # feed R the stan model
-file <- file.path("simplebayesMLs.stan")
+file <- file.path("simplebayesML.stan")
 mod_simpleBayes <- cmdstan_model(file, cpp_options = list(stan_threads = TRUE),
                      stanc_options = list("O1"))
 # create samples from the model
