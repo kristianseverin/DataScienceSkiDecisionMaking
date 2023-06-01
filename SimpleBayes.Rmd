@@ -30,17 +30,18 @@ source("Functions/priorSens_f.R")  # get self-written function for prior sensiti
 ```
 
 ```{r}
+# set up experimental setup
 nskiers <- 10
-bias <- seq(0.1,0.9, 0.1)
+bias <- seq(0.1,0.9, 0.1) 
 trials <- seq(10)
 Source1 <- seq(0.1,0.9, 0.1)
 Source2 <- seq(0.1,0.9, 0.1)
 
-
+# simulate data
 dbS <- expand.grid(bias = bias, trials, Source1 = Source1, Source2 = Source2)
 
 for (n in seq(nrow(dbS))) {
-  dbS$beliefAssessment[n] <- SimpleBayes_f(dbS$bias[n], dbS$Source1[n], dbS$Source2[n])
+  dbS$beliefAssessment[n] <- SimpleBayes_f(dbS$bias[n], dbS$Source1[n], dbS$Source2[n]) # use simple bayes logic
  
   dbS$outcome[n] <- rbinom(1,1, db$beliefAssessment[n])
  
@@ -52,13 +53,11 @@ for (n in seq(nrow(dbS))) {
 
 dbS <- rename(dbS, "skier" = "Var2") 
 
-#db <- sample_n(db, size = 26244)
-
-#db <- db %>% na.omit()
 ```
 
 
 ```{r}
+### Fitting data to the model ###
 # pivot data wider
 sim_wide_simpleS<- dbS %>% 
   group_by(skier) %>% 
@@ -101,6 +100,7 @@ draws_df_simpleS <- as_draws_df(samples_simpleS$draws())
 
 This chunk has the prior and posterior predictive checks for the bias parameter
 ```{r}
+# make plots
 Prior_predictive_checks_p <- 
 ggplot(draws_df_simpleS) +
   geom_histogram(aes(`prior_preds5[1]`), color = "yellow", fill = "lightyellow", alpha = 0.2) +
@@ -143,6 +143,7 @@ Prior_predictive_checks_p
 both_bs5+both_bs7+both_bs9 + plot_annotation(title = "Prior and Posterior Predictive Checks", subtitle = "Simple Bayes Model Parameter")
 ```
 
+This chunk creates different levels of means and standard deviations for a prior sensitivity analysis
 ```{r}
 # adding different priors for bias
 prior_mean <- seq(-3, 3, .5)
@@ -164,7 +165,7 @@ prior_sens_dfS <- future_pmap_dfr(priors, prior_sens_S, .options = furrr_options
 ```
 
 ```{r}
-# prior sensitivity
+# prior sensitivity plot
 ggplot(prior_sens_dfS, aes(prior_mean, bias_posterior1)) +
   xlab("Prior Mean")+
   ylab("Bias Posterior")+
@@ -183,13 +184,6 @@ ggplot(prior_sens_dfS, aes(prior_mean, bias_posterior1)) +
       "0.9" = "prior standard deviation: 0.9",
       "1" = "prior standard deviation: 1"
       )))+
-  theme_classic()
-
-ggplot(prior_sens_dfS, aes(prior_mean, bias_posterior2)) +
-  geom_point(alpha = 0.1) +
-  geom_hline(yintercept = 0.8, color = "red") +
-  geom_smooth() +
-  facet_wrap(.~prior_sd) +
   theme_classic()
 ```
 
@@ -385,6 +379,7 @@ samples_simpleS$loo()
 
 
 ```{r}
+# this chunk runs parameter recovery
 parameter_recovery_dfb <- NULL  
 
 for (biasLvl in unique(db$bias)){
@@ -429,6 +424,7 @@ samples_ss <- dataSimpleBayesParam$sample(
 ```
 
 ```{r}
+# parameter recovery plot
 biasS <- ggplot(parameter_recovery_dfb, aes(biasTrue, biasEstScaled)) +
   geom_point(alpha = 0.1) +
   geom_smooth(method = "lm", color = "orange") +
@@ -460,6 +456,7 @@ skidata$Source2 <- ifelse(skidata$Source2 == 0, 0.01,
 
 
 ```{r}
+### wrangle the data and fit it to the model ###
 # pivot data wider
 sim_wide_skiS <- skidata %>% 
   group_by(id) %>% 
@@ -476,6 +473,7 @@ dataSimpleBayesSkiS <- list(
   Source2 = as.matrix(sim_wide_skiS[,6:7])
 )
 
+# Subject A
 dataSimpleBayesSkiDreS <- sim_wide_skiS %>% 
   subset(select = c(outcome_2, Source1_2, Source2_2)) %>% 
   na.omit()
@@ -511,6 +509,7 @@ draws_df_ski_DreS <- as_draws_df(samples_simple_skiDreS$draws())
 
 
 ```{r}
+# subject B
 # Johan
 dataSimpleBayesSkiJoeS <- sim_wide_skiS %>% 
   subset(select = c(outcome_1, Source1_1, Source2_1)) %>% 

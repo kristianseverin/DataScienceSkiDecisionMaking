@@ -26,12 +26,13 @@ pacman::p_load(
   ggpubr
   )
 
-source("Functions/weightedBayes_f.R")
-source("Functions/priorSensW_f.R")
+source("Functions/weightedBayes_f.R")  # get self-written function used to simulate data with
+source("Functions/priorSensW_f.R")  # get self-written function for prior sensitivity analysis
 
 ```
 
 ```{r}
+# set up experimental setup
 nskiers <- 10
 bias <- seq(0.1,0.9, 0.1)
 trials <- seq(10)
@@ -42,8 +43,8 @@ w2 <- seq(0.5, 1, 0.1)
 
 db <- expand.grid(bias = bias, trials, Source1 = Source1, Source2 = Source2, w1 = w1, w2 = w2)
 
-for (n in seq(nrow(db))) {
-  db$beliefAssessment[n] <- WeightedBayes_f(db$bias[n], db$Source1[n], db$Source2[n],db$w1[n], db$w2[n])
+for (n in seq(nrow(db))) {  # use weighted bayes logic
+  db$beliefAssessment[n] <- WeightedBayes_f(db$bias[n], db$Source1[n], db$Source2[n],db$w1[n], db$w2[n])  
  
   db$outcome[n] <- rbinom(1,1, db$beliefAssessment[n])
  
@@ -55,8 +56,10 @@ for (n in seq(nrow(db))) {
 
 db <- rename(db, "skier" = "Var2") 
 
+# make the dataset feasible for fitting 
 db <- sample_n(db, size = 26244)
 
+# omit NA's
 db <- db %>% na.omit()
 ```
 
@@ -104,8 +107,7 @@ draws_df_weighted <- as_draws_df(samples_weighted$draws())
 
 This chunk has all the prior and posterior predictive checks
 ```{r}
-
-
+# prior predictive plots
 Prior_predictive_checks_pb <- 
 ggplot(draws_df_weighted) +
   geom_histogram(aes(`prior_predsb5[1]`), color = "yellow", fill = "lightyellow", alpha = 0.2) +
@@ -274,6 +276,7 @@ both_b5+both_b7+both_b9+both_w15+both_w17+both_w19+both_w25+both_w27+both_w29 + 
 
 This chunk has all the prior posterior update plots for bias
 ```{r}
+### prior posterior update plots for bias  ###
 # bias plot
 b1w <- ggplot(draws_df_weighted) +
   geom_density(aes(`bias_posterior[1]`), alpha = 0.6, fill = "lightblue") +
@@ -382,6 +385,7 @@ pbw_all
 
 This chunk has all the prior posterior update plots for weight 1
 ```{r}
+### prior posterior update plots for w1  ###
 # w1 plots
 w1w1 <- ggplot(draws_df_weighted) +
   geom_density(aes(`w1_posterior[1]`), alpha = 0.6, fill = "lightblue") +
@@ -482,6 +486,7 @@ pbw1_all
 
 This chunk has all the prior posterior update plots for weight 2
 ```{r}
+### prior posterior update plots for w2  ###
 # w1 plots
 w1w2 <- ggplot(draws_df_weighted) +
   geom_density(aes(`w2_posterior[1]`), alpha = 0.6, fill = "lightblue") +
@@ -581,7 +586,7 @@ pbw2_all
 
 This chunk has all the chains mixing traceplots for bias
 ```{r}
-# chains mixing plot
+# chains mixing plots bias
 mp1 <- ggplot(draws_df_weighted, aes(.iteration, `bias[1]`, group = .chain, color = .chain)) +
   geom_line(alpha = 0.5) +
   theme_classic()
@@ -623,7 +628,7 @@ mix_w_all
 
 This chunk has all the chains mixing traceplots for w1
 ```{r}
-# chains mixing plot
+# chains mixing plots w1
 mpw1 <- ggplot(draws_df_weighted, aes(.iteration, `w1[1]`, group = .chain, color = .chain)) +
   geom_line(alpha = 0.5) +
   theme_classic()
@@ -674,7 +679,7 @@ mix_w1_all
 
 This chunk has all the chains mixing traceplots for w2
 ```{r}
-# chains mixing plot
+# chains mixing plot w2
 mp2w1 <- ggplot(draws_df_weighted, aes(.iteration, `w2[1]`, group = .chain, color = .chain)) +
   geom_line(alpha = 0.5) +
   theme_classic()
@@ -723,7 +728,7 @@ annotate_figure(mix_w1_all, top = text_grob("Chains Mixing Plot Weighted Bayes M
 mix_w2_all
 ```
 
-
+This chunk creates different levels of means and standard deviations for a prior sensitivity analysis
 ```{r}
 # adding different priors for bias
 prior_mean <- seq(-3, 3, .5)
@@ -745,7 +750,8 @@ prior_sens_dfW <- future_pmap_dfr(priors, sim_d_and_fit_weighted, .options = fur
 ```
 
 ```{r}
-# prior sensitivity
+### prior sensitivity plots ###
+#  bias
 ggplot(prior_sens_dfW, aes(prior_mean, bias_posterior1)) +
   xlab("Prior Mean")+
   ylab("Bias Posterior")+
@@ -766,7 +772,7 @@ ggplot(prior_sens_dfW, aes(prior_mean, bias_posterior1)) +
       )))+
   theme_classic()
 
-# prior sensitivity
+# weight 1
 ggplot(prior_sens_dfW, aes(prior_mean, w1_posterior1)) +
   xlab("Prior Mean")+
   ylab("ω1 Posterior")+
@@ -787,7 +793,7 @@ ggplot(prior_sens_dfW, aes(prior_mean, w1_posterior1)) +
       )))+
   theme_classic()
 
-# prior sensitivity
+# weight 2
 ggplot(prior_sens_dfW, aes(prior_mean, w2_posterior1)) +
   xlab("Prior Mean")+
   ylab("ω2 Posterior")+
@@ -811,7 +817,7 @@ ggplot(prior_sens_dfW, aes(prior_mean, w2_posterior1)) +
 
 
 ```{r}
-# w1 plots
+# weight plots
 
 b2w1 <- ggplot(draws_df_weighted) +
   geom_density(aes(`w1_posterior[1]`), alpha = 0.6, fill = "lightblue") +
@@ -838,6 +844,7 @@ b2w2
 
 
 ```{r}
+# leave one out cross-validation information criteria
 samples_weighted$loo()
 ```
 
@@ -903,6 +910,7 @@ w1+w2
 ```
 
 ```{r}
+# do the parameters influence each other?
 ggplot(draws_df_weighted) +
   geom_point(aes(`bias[2]`, `w2[2]`), alpha = 0.3) +
   theme_bw()
@@ -918,6 +926,7 @@ ggplot(draws_df_weighted) +
 
 
 ```{r}
+### more plots ###
 # bias plot
 w11 <- ggplot(draws_df_weighted) +
   geom_density(aes(`w1[1]`), alpha = 0.6, fill = "lightblue") +
@@ -1072,6 +1081,7 @@ w11+w12+w13+w14+w15+w16+w17+w18+w19+w110
 ```
 
 ```{r}
+# parameter recovery for bias
 parameter_recovery_dfbw <- NULL  
 
 for (biasLvl in unique(db$bias)){
@@ -1162,6 +1172,7 @@ samples_w <- mod_WeightedBayes$sample(
 ```
 
 ```{r}
+# parameter recovery for weight 2
 parameter_recovery_dfw2 <- NULL  
 
   for (weightLvl2 in unique(db$w2)){
@@ -1209,6 +1220,7 @@ samples_w <- mod_WeightedBayes$sample(
 
 
 ```{r}
+# parameter recovery plot
 w1 <- ggplot(parameter_recovery_dfw1, aes(w1True, w1Est)) +
   geom_point(alpha = 0.1) +
   geom_smooth(method = "lm", color = "purple") +
@@ -1256,6 +1268,7 @@ skidata$Source2 <- ifelse(skidata$Source2 == 0, 0.01,
 
 
 ```{r}
+### wrangle the data and fit it to the model ###
 # pivot data wider
 sim_wide_ski <- skidata %>% 
   group_by(id) %>% 
@@ -1263,6 +1276,7 @@ sim_wide_ski <- skidata %>%
   mutate(row = row_number()) %>% 
   pivot_wider(names_from = id, values_from = c(outcome, Source1, Source2))
 
+# subject A
 dataSimpleBayesSkiDre <- sim_wide_ski %>% 
   subset(select = c(outcome_2, Source1_2, Source2_2)) %>% 
   na.omit()
@@ -1299,7 +1313,7 @@ draws_df_ski_Dre <- as_draws_df(samples_simple_w_skiDre$draws())
 ```
 
 ```{r}
-# Johan
+# Johan subject B
 dataSimpleBayesSkiJoe <- sim_wide_ski %>% 
   subset(select = c(outcome_1, Source1_1, Source2_1)) %>% 
   na.omit()
@@ -1349,6 +1363,7 @@ samples_simple_w_skiDre$loo()
 ```
 
 ```{r}
+# do the chains mix well?
 p1wJoe <- ggplot(draws_df_ski_Joe, aes(.iteration, `bias[1]`, group = .chain, color = .chain)) +
   geom_line(alpha = 0.5) +
   theme_classic()
@@ -1361,7 +1376,7 @@ p1wDre
 
 
 ```{r}
-
+### parameter estimations plot used in paper ###
 # bias Subject A plot
 DreWb <- ggplot(draws_df_ski_Dre) +
   geom_density(aes(`bias_posterior[1]`), alpha = 0.6, fill = "lightblue") +
