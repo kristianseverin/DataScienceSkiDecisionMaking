@@ -26,8 +26,8 @@ pacman::p_load(
   ggpubr
   )
 
-source("weightedBayes_f.R")
-source("priorSensW_f.R")
+source("Functions/weightedBayes_f.R")
+source("Functions/priorSensW_f.R")
 
 ```
 
@@ -769,7 +769,7 @@ ggplot(prior_sens_dfW, aes(prior_mean, bias_posterior1)) +
 # prior sensitivity
 ggplot(prior_sens_dfW, aes(prior_mean, w1_posterior1)) +
   xlab("Prior Mean")+
-  ylab("Bias Posterior")+
+  ylab("ω1 Posterior")+
   geom_point(alpha = 0.1) +
   geom_hline(yintercept = 0.8, color = "red") +
   geom_smooth() +
@@ -790,7 +790,7 @@ ggplot(prior_sens_dfW, aes(prior_mean, w1_posterior1)) +
 # prior sensitivity
 ggplot(prior_sens_dfW, aes(prior_mean, w2_posterior1)) +
   xlab("Prior Mean")+
-  ylab("Bias Posterior")+
+  ylab("ω2 Posterior")+
   geom_point(alpha = 0.1) +
   geom_hline(yintercept = 0.8, color = "red") +
   geom_smooth() +
@@ -1366,14 +1366,14 @@ p1wDre
 DreWb <- ggplot(draws_df_ski_Dre) +
   geom_density(aes(`bias_posterior[1]`), alpha = 0.6, fill = "lightblue") +
  # xlim(0,1)+
-    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution β" , hjust = 0)+
+    annotate("text", colour = "lightblue", x = 0.01, y = 45, label = "Posterior Distribution β" , hjust = 0)+
   geom_density(aes(`bias_prior[1]`), alpha = 0.6, fill = "pink") +
-    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution β", hjust =0)+
+    annotate("text", colour = "pink", x = 0.01, y = 37, label = "Prior Distribution β", hjust =0)+
   xlab("β")+
   ylab("Estimated β Densitites")+
   theme_classic()+
   geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
-    annotate("text", x = 0.01, y = 40,  label="Simulated β", hjust = 0)+
+    annotate("text", x = 0.01, y = 28,  label="Simulated β", hjust = 0)+
   geom_vline(xintercept = summaryDre$q5[37], linetype = "solid", color = "grey", size = 0.5, alpha = 1)+
   geom_vline(xintercept = summaryDre$q95[37], linetype = "solid", color = "grey", size = 0.5, alpha = 1)+
   geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 25, ymax = 48), 
@@ -1386,14 +1386,14 @@ DreWb <- ggplot(draws_df_ski_Dre) +
 JoeWb <- ggplot(draws_df_ski_Joe) +
   geom_density(aes(`bias_posterior[1]`), alpha = 0.6, fill = "lightblue") +
  # xlim(0,1)+
-    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution β" , hjust = 0)+
+    annotate("text", colour = "lightblue", x = 0.01, y = 45, label = "Posterior Distribution β" , hjust = 0)+
   geom_density(aes(`bias_prior[1]`), alpha = 0.6, fill = "pink") +
-    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution β", hjust =0)+
+    annotate("text", colour = "pink", x = 0.01, y = 37, label = "Prior Distribution β", hjust =0)+
   xlab("β")+
   ylab("Estimated β Densitites")+
   theme_classic()+
   geom_vline(xintercept = mean(db$bias), linetype = "dashed", size = 1.5) +
-    annotate("text", x = 0.01, y = 40,  label="Simulated β", hjust = 0)+
+    annotate("text", x = 0.01, y = 28,  label="Simulated β", hjust = 0)+
   geom_vline(xintercept = summaryJoe$q5[25], linetype = "solid", color = "grey", size = 0.5, alpha = 1)+
   geom_vline(xintercept = summaryJoe$q95[25], linetype = "solid", color = "grey", size = 0.5, alpha = 1)+
   geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 25, ymax = 48), 
@@ -1405,14 +1405,14 @@ JoeWb <- ggplot(draws_df_ski_Joe) +
 DreW1 <- ggplot(draws_df_ski_Dre) +
   geom_density(aes(`w1_posterior[1]`), alpha = 0.6, fill = "lightblue") +
   xlim(0,1)+
-    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution ω1" , hjust = 0)+
+    annotate("text", colour = "lightblue", x = 0.01, y = 45, label = "Posterior Distribution β" , hjust = 0)+
   geom_density(aes(`w1_prior[1]`), alpha = 0.6, fill = "pink") +
-    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution ω1", hjust =0)+
+    annotate("text", colour = "pink", x = 0.01, y = 37, label = "Prior Distribution β", hjust =0)+
   xlab("ω1")+
   ylab("Estimated ω1 Densitites")+
   theme_classic()+
   geom_vline(xintercept = mean(db$w1), linetype = "dashed", size = 1.5) +
-    annotate("text", x = 0.01, y = 40,  label="Simulated ω1", hjust = 0)+
+    annotate("text", x = 0.01, y = 28,  label="Simulated β", hjust = 0)+
   geom_vline(xintercept = summaryDre$q5[40], linetype = "solid", color = "grey", size = 0.5, alpha = 1)+
   geom_vline(xintercept = summaryDre$q95[40], linetype = "solid", color = "grey", size = 0.5, alpha = 1)+
   geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 25, ymax = 48), 
@@ -1424,14 +1424,14 @@ DreW1 <- ggplot(draws_df_ski_Dre) +
 JoeW1 <- ggplot(draws_df_ski_Joe) +
   geom_density(aes(`w1_posterior[1]`), alpha = 0.6, fill = "lightblue") +
   xlim(0,1)+
-    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution ω1" , hjust = 0)+
+    annotate("text", colour = "lightblue", x = 0.01, y = 45, label = "Posterior Distribution β" , hjust = 0)+
   geom_density(aes(`w1_prior[1]`), alpha = 0.6, fill = "pink") +
-    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution ω1", hjust =0)+
+    annotate("text", colour = "pink", x = 0.01, y = 37, label = "Prior Distribution β", hjust =0)+
   xlab("ω1")+
   ylab("Estimated ω1 Densitites")+
   theme_classic()+
   geom_vline(xintercept = mean(db$w1), linetype = "dashed", size = 1.5) +
-    annotate("text", x = 0.01, y = 40,  label="Simulated ω1", hjust = 0)+
+    annotate("text", x = 0.01, y = 28,  label="Simulated β", hjust = 0)+
   geom_vline(xintercept = summaryJoe$q5[28], linetype = "solid", color = "grey", size = 0.5, alpha = 1)+
   geom_vline(xintercept = summaryJoe$q95[28], linetype = "solid", color = "grey", size = 0.5, alpha = 1)+
   geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 25, ymax = 48), 
@@ -1443,14 +1443,14 @@ JoeW1 <- ggplot(draws_df_ski_Joe) +
 DreW2 <- ggplot(draws_df_ski_Dre) +
   geom_density(aes(`w2_posterior[1]`), alpha = 0.6, fill = "lightblue") +
   xlim(0,1)+
-    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution ω2" , hjust = 0)+
+    annotate("text", colour = "lightblue", x = 0.01, y = 45, label = "Posterior Distribution β" , hjust = 0)+
   geom_density(aes(`w2_prior[1]`), alpha = 0.6, fill = "pink") +
-    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution ω2", hjust =0)+
+    annotate("text", colour = "pink", x = 0.01, y = 37, label = "Prior Distribution β", hjust =0)+
   xlab("Bias")+
   ylab("Estimated ω2 Densitites")+
   theme_classic()+
   geom_vline(xintercept = mean(db$w2), linetype = "dashed", size = 1.5) +
-    annotate("text", x = 0.01, y = 40,  label="Simulated ω2", hjust = 0)+
+    annotate("text", x = 0.01, y = 28,  label="Simulated β", hjust = 0)+
   geom_vline(xintercept = summaryDre$q5[41], linetype = "solid", color = "grey", size = 0.5, alpha = 1)+
   geom_vline(xintercept = summaryDre$q95[41], linetype = "solid", color = "grey", size = 0.5, alpha = 1)+
   geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 25, ymax = 48), 
@@ -1462,14 +1462,14 @@ DreW2 <- ggplot(draws_df_ski_Dre) +
 JoeW2 <- ggplot(draws_df_ski_Joe) +
   geom_density(aes(`w2_posterior[1]`), alpha = 0.6, fill = "lightblue") +
   xlim(0,1)+
-    annotate("text", colour = "lightblue", x = 0.01, y = 46, label = "Posterior Distribution ω2" , hjust = 0)+
+    annotate("text", colour = "lightblue", x = 0.01, y = 45, label = "Posterior Distribution β" , hjust = 0)+
   geom_density(aes(`w2_prior[1]`), alpha = 0.6, fill = "pink") +
-    annotate("text", colour = "pink", x = 0.01, y = 43, label = "Prior Distribution ω2", hjust =0)+
+    annotate("text", colour = "pink", x = 0.01, y = 37, label = "Prior Distribution β", hjust =0)+
   xlab("ω2")+
   ylab("Estimated ω2 Densitites")+
   theme_classic()+
   geom_vline(xintercept = mean(db$w2), linetype = "dashed", size = 1.5) +
-    annotate("text", x = 0.01, y = 40,  label="Simulated ω2", hjust = 0)+
+    annotate("text", x = 0.01, y = 28,  label="Simulated β", hjust = 0)+
   geom_vline(xintercept = summaryJoe$q5[29], linetype = "solid", color = "grey", size = 0.5, alpha = 1)+
   geom_vline(xintercept = summaryJoe$q95[29], linetype = "solid", color = "grey", size = 0.5, alpha = 1)+
   geom_rect(aes(xmin = 0, xmax = 0.3, ymin = 25, ymax = 48), 
